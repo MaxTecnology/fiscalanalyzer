@@ -1,0 +1,54 @@
+services:
+  postgres:
+    image: postgres:16
+    container_name: fiscalanalyzer-postgres
+    environment:
+      POSTGRES_DB: fiscalanalyzer
+      POSTGRES_USER: fiscalanalyzer
+      POSTGRES_PASSWORD: fiscalanalyzer
+    ports:
+      - "5432:5432"
+    volumes:
+      - fiscalanalyzer_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U fiscalanalyzer -d fiscalanalyzer"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  rabbitmq:
+    image: rabbitmq:3-management
+    container_name: fiscalanalyzer-rabbitmq
+    environment:
+      RABBITMQ_DEFAULT_USER: fiscalanalyzer
+      RABBITMQ_DEFAULT_PASS: fiscalanalyzer
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  minio:
+    image: minio/minio:latest
+    container_name: fiscalanalyzer-minio
+    environment:
+      MINIO_ROOT_USER: fiscalanalyzer
+      MINIO_ROOT_PASSWORD: fiscalanalyzer
+    command: server /data --console-address ":9001"
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    volumes:
+      - fiscalanalyzer_minio:/data
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/ready"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+volumes:
+  fiscalanalyzer_pgdata:
+  fiscalanalyzer_minio:

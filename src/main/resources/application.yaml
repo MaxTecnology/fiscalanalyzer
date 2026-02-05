@@ -1,0 +1,21 @@
+spring:
+  application:
+    name: FiscalAnalyzer
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    open-in-view: false
+  flyway:
+    enabled: true
+  servlet:
+    multipart:
+      max-file-size: ${app.importacao.max-zip-size}
+      max-request-size: ${app.importacao.max-zip-size}
+
+app:
+  importacao:
+    max-zip-size: 200MB
+  queue:
+    exchange: import.exchange
+    extract-zip: import.extract
+    parse-xml: import.parse

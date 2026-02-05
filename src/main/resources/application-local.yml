@@ -1,0 +1,47 @@
+spring:
+  datasource:
+    url: jdbc:postgresql://localhost:5432/fiscalanalyzer
+    username: fiscalanalyzer
+    password: fiscalanalyzer
+    driver-class-name: org.postgresql.Driver
+
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    open-in-view: false
+    properties:
+      hibernate:
+        jdbc:
+          time_zone: UTC
+
+  flyway:
+    enabled: true
+
+  rabbitmq:
+    host: localhost
+    port: 5672
+    username: fiscalanalyzer
+    password: fiscalanalyzer
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+
+app:
+  importacao:
+    max-zip-size: 200MB
+  queue:
+    exchange: import.exchange
+    extract-zip: import.extract
+    parse-xml: import.parse
+
+storage:
+  s3:
+    endpoint: http://localhost:9000
+    access-key: fiscalanalyzer
+    secret-key: fiscalanalyzer
+    bucket: fiscal-raw
+    region: us-east-1
+    path-style-access: true
