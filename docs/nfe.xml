@@ -1,0 +1,337 @@
+<nfeProc xmlns="http://www.portalfiscal.inf.br/nfe" versao="4.00">
+    <NFe xmlns="http://www.portalfiscal.inf.br/nfe">
+        <infNFe Id="NFe26251216404287029056550010001762721022736522" versao="4.00">
+            <ide>
+                <cUF>26</cUF>
+                <cNF>02273652</cNF>
+                <natOp>Venda merc.adq.receb.de terceiros ou MEI</natOp>
+                <mod>55</mod>
+                <serie>1</serie>
+                <nNF>176272</nNF>
+                <dhEmi>2025-12-19T10:53:06-03:00</dhEmi>
+                <tpNF>1</tpNF>
+                <idDest>2</idDest>
+                <cMunFG>2607901</cMunFG>
+                <tpImp>1</tpImp>
+                <tpEmis>1</tpEmis>
+                <cDV>2</cDV>
+                <tpAmb>1</tpAmb>
+                <finNFe>1</finNFe>
+                <indFinal>0</indFinal>
+                <indPres>3</indPres>
+                <indIntermed>0</indIntermed>
+                <procEmi>0</procEmi>
+                <verProc>SAP NFE 10.0</verProc>
+            </ide>
+            <emit>
+                <CNPJ>16404287029056</CNPJ>
+                <xNome>SUZANO PAPEL E CELULOSE S.A.</xNome>
+                <xFant>CD Jaboatao</xFant>
+                <enderEmit>
+                    <xLgr>R BETA</xLgr>
+                    <nro>147</nro>
+                    <xBairro>Comportas</xBairro>
+                    <cMun>2607901</cMun>
+                    <xMun>JABOATAO DOS GUARARAPES</xMun>
+                    <UF>PE</UF>
+                    <CEP>54345175</CEP>
+                    <cPais>1058</cPais>
+                    <xPais>Brasil</xPais>
+                    <fone>51481136365149</fone>
+                </enderEmit>
+                <IE>043687628</IE>
+                <IM>9640118</IM>
+                <CNAE>4647801</CNAE>
+                <CRT>3</CRT>
+            </emit>
+            <dest>
+                <CNPJ>05841177000134</CNPJ>
+                <xNome>A PEQUENINA LTDA</xNome>
+                <enderDest>
+                    <xLgr>R TEOFILO PEREIRA</xLgr>
+                    <nro>300</nro>
+                    <xCpl>A</xCpl>
+                    <xBairro>CENTRO</xBairro>
+                    <cMun>2709152</cMun>
+                    <xMun>TEOTONIO VILELA</xMun>
+                    <UF>AL</UF>
+                    <CEP>57265000</CEP>
+                    <cPais>1058</cPais>
+                    <xPais>Brasil</xPais>
+                </enderDest>
+                <indIEDest>1</indIEDest>
+                <IE>248521608</IE>
+            </dest>
+            <det nItem="1">
+                <prod>
+                    <cProd>000000000020088870</cProd>
+                    <cEAN>7891191003733</cEAN>
+                    <xProd>PAPEL REPORT PREMIUM</xProd>
+                    <NCM>48025610</NCM>
+                    <CEST>1903100</CEST>
+                    <CFOP>6102</CFOP>
+                    <uCom>CXA</uCom>
+                    <qCom>340.0000</qCom>
+                    <vUnCom>202.4398823529</vUnCom>
+                    <vProd>68829.56</vProd>
+                    <cEANTrib>7891191003733</cEANTrib>
+                    <uTrib>CX</uTrib>
+                    <qTrib>340.0000</qTrib>
+                    <vUnTrib>202.4398823529</vUnTrib>
+                    <indTot>1</indTot>
+                    <xPed>20855378</xPed>
+                </prod>
+                <imposto>
+                    <ICMS>
+                        <ICMS00>
+                            <orig>0</orig>
+                            <CST>00</CST>
+                            <modBC>3</modBC>
+                            <vBC>68829.56</vBC>
+                            <pICMS>12.0000</pICMS>
+                            <vICMS>8259.55</vICMS>
+                        </ICMS00>
+                    </ICMS>
+                    <IPI>
+                        <cEnq>999</cEnq>
+                        <IPITrib>
+                            <CST>50</CST>
+                            <vBC>68829.56</vBC>
+                            <pIPI>3.2500</pIPI>
+                            <vIPI>2236.96</vIPI>
+                        </IPITrib>
+                    </IPI>
+                    <PIS>
+                        <PISAliq>
+                            <CST>01</CST>
+                            <vBC>60570.01</vBC>
+                            <pPIS>1.6500</pPIS>
+                            <vPIS>999.41</vPIS>
+                        </PISAliq>
+                    </PIS>
+                    <COFINS>
+                        <COFINSAliq>
+                            <CST>01</CST>
+                            <vBC>60570.01</vBC>
+                            <pCOFINS>7.6000</pCOFINS>
+                            <vCOFINS>4603.32</vCOFINS>
+                        </COFINSAliq>
+                    </COFINS>
+                </imposto>
+                <infAdProd>REPM075 C C BR 0210X0297 RF 00500 10 056</infAdProd>
+            </det>
+            <det nItem="2">
+                <prod>
+                    <cProd>000000000020091915</cProd>
+                    <cEAN>7891191003733</cEAN>
+                    <xProd>RHQ7075 C C BR 0210X0297 RF 00500 10 056</xProd>
+                    <NCM>48025610</NCM>
+                    <CEST>1903100</CEST>
+                    <CFOP>6102</CFOP>
+                    <uCom>CXA</uCom>
+                    <qCom>84.0000</qCom>
+                    <vUnCom>202.4396428571</vUnCom>
+                    <vProd>17004.93</vProd>
+                    <cEANTrib>7891191003733</cEANTrib>
+                    <uTrib>CX</uTrib>
+                    <qTrib>84.0000</qTrib>
+                    <vUnTrib>202.4396428571</vUnTrib>
+                    <indTot>1</indTot>
+                    <xPed>20855378</xPed>
+                </prod>
+                <imposto>
+                    <ICMS>
+                        <ICMS00>
+                            <orig>0</orig>
+                            <CST>00</CST>
+                            <modBC>3</modBC>
+                            <vBC>17004.93</vBC>
+                            <pICMS>12.0000</pICMS>
+                            <vICMS>2040.59</vICMS>
+                        </ICMS00>
+                    </ICMS>
+                    <IPI>
+                        <cEnq>999</cEnq>
+                        <IPITrib>
+                            <CST>50</CST>
+                            <vBC>17004.93</vBC>
+                            <pIPI>3.2500</pIPI>
+                            <vIPI>552.66</vIPI>
+                        </IPITrib>
+                    </IPI>
+                    <PIS>
+                        <PISAliq>
+                            <CST>01</CST>
+                            <vBC>14964.34</vBC>
+                            <pPIS>1.6500</pPIS>
+                            <vPIS>246.91</vPIS>
+                        </PISAliq>
+                    </PIS>
+                    <COFINS>
+                        <COFINSAliq>
+                            <CST>01</CST>
+                            <vBC>14964.34</vBC>
+                            <pCOFINS>7.6000</pCOFINS>
+                            <vCOFINS>1137.29</vCOFINS>
+                        </COFINSAliq>
+                    </COFINS>
+                </imposto>
+                <infAdProd>RHQ7075 C C BR 0210X0297 RF 00500 10 056</infAdProd>
+            </det>
+            <total>
+                <ICMSTot>
+                    <vBC>85834.49</vBC>
+                    <vICMS>10300.14</vICMS>
+                    <vICMSDeson>0.00</vICMSDeson>
+                    <vFCP>0.00</vFCP>
+                    <vBCST>0.00</vBCST>
+                    <vST>0.00</vST>
+                    <vFCPST>0.00</vFCPST>
+                    <vFCPSTRet>0.00</vFCPSTRet>
+                    <vProd>85834.49</vProd>
+                    <vFrete>0.00</vFrete>
+                    <vSeg>0.00</vSeg>
+                    <vDesc>0.00</vDesc>
+                    <vII>0.00</vII>
+                    <vIPI>2789.62</vIPI>
+                    <vIPIDevol>0.00</vIPIDevol>
+                    <vPIS>1246.32</vPIS>
+                    <vCOFINS>5740.61</vCOFINS>
+                    <vOutro>0.00</vOutro>
+                    <vNF>88624.11</vNF>
+                </ICMSTot>
+            </total>
+            <transp>
+                <modFrete>0</modFrete>
+                <transporta>
+                    <CNPJ>05950799000796</CNPJ>
+                    <xNome>RODOCELL TRANSPORTE E LOGISTICA LTD</xNome>
+                    <IE>142192515</IE>
+                    <xEnder>ROD BA 093 738</xEnder>
+                    <xMun>Simoes Filho</xMun>
+                    <UF>BA</UF>
+                </transporta>
+                <vol>
+                    <qVol>424</qVol>
+                    <esp>VOL</esp>
+                    <pesoL>9918.571</pesoL>
+                    <pesoB>9918.571</pesoB>
+                </vol>
+            </transp>
+            <cobr>
+                <fat>
+                    <nFat>0000176272</nFat>
+                    <vOrig>88624.11</vOrig>
+                    <vDesc>0.00</vDesc>
+                    <vLiq>88624.11</vLiq>
+                </fat>
+                <dup>
+                    <nDup>001</nDup>
+                    <dVenc>2026-01-19</dVenc>
+                    <vDup>29541.96</vDup>
+                </dup>
+                <dup>
+                    <nDup>002</nDup>
+                    <dVenc>2026-02-02</dVenc>
+                    <vDup>29541.07</vDup>
+                </dup>
+                <dup>
+                    <nDup>003</nDup>
+                    <dVenc>2026-02-18</dVenc>
+                    <vDup>29541.08</vDup>
+                </dup>
+            </cobr>
+            <pag>
+                <detPag>
+                    <indPag>1</indPag>
+                    <tPag>18</tPag>
+                    <vPag>88624.11</vPag>
+                </detPag>
+            </pag>
+            <infAdic>
+                <infCpl>Numero DT: 22158204 Orientacoes de Entrega: ,,, Horario Comercial das 08:00
+                    as 18:00 ICMS Tributado Integralmente Condicoes de Pagamento: 30/45/60 DDL
+                    BOLETO Produtos certificados FSC. FSC Misto 70%. SCSCOC009929 Docs. Referencia:
+                    20855378 / 20855378 / 31318625 / 78089157 O recebimento dos produtos constantes
+                    dessa NF configura o aceite do comprador das condicoes dispostas em
+                    https://web.suzano.com.br Remetente Contribuinte, substituto tributario e
+                    tomador de servicos de transportes por substituicao tributaria, nos termos do
+                    Inciso II do artigo 81 do RICMS/PE.</infCpl>
+            </infAdic>
+            <infRespTec>
+                <CNPJ>16404287029056</CNPJ>
+                <xContato>JAILTON OLIVEIRA DE SOUZA</xContato>
+                <email>regularidades@suzano.com.br</email>
+                <fone>00001136365000</fone>
+            </infRespTec>
+        </infNFe>
+        <Signature xmlns="http://www.w3.org/2000/09/xmldsig#">
+            <SignedInfo>
+                <CanonicalizationMethod Algorithm="http://www.w3.org/TR/2001/REC-xml-c14n-20010315" />
+                <SignatureMethod Algorithm="http://www.w3.org/2000/09/xmldsig#rsa-sha1" />
+                <Reference URI="#NFe26251216404287029056550010001762721022736522">
+                    <Transforms>
+                        <Transform Algorithm="http://www.w3.org/2000/09/xmldsig#enveloped-signature" />
+                        <Transform Algorithm="http://www.w3.org/TR/2001/REC-xml-c14n-20010315" />
+                    </Transforms>
+                    <DigestMethod Algorithm="http://www.w3.org/2000/09/xmldsig#sha1" />
+                    <DigestValue>NWhrqRXl7uGyxRw27ZJMueMX+zo=</DigestValue>
+                </Reference>
+            </SignedInfo>
+            <SignatureValue>HnoL9r/60k4E1LAnFhlqi60pDt1zGbdoEkXqhxCYRjqfV6UFgnl8tyiS1yVZpuublDkuqc8mSuV/
+                s0DF3caaNQpl2VdC+ULqLq2kzhiCiyimc2GlVKlbAJS+/1g+PJ7lG24t+20qvFLyRs4Qt67Kzfor
+                KuK+PRHn9h/ej7lkxIn7Pi83MH//8sdovsrKtjpzcfBInLz1jXlByUpONGzE3EM5J7WdIdSLBlKS
+                7YQbWE8p81NeVailqoqA6L7LIJrQVjcyzJTOyqwUJIHm+oQucsXkRVjPSlzRGUxNYFPa+Jq5J0t+
+                AABaxtqS6Rr37AArmOZBEzZlLccvkUku1y1PTw==</SignatureValue>
+            <KeyInfo>
+                <X509Data>
+                    <X509Certificate>MIIHOjCCBSKgAwIBAgIIa3clBgleCZwwDQYJKoZIhvcNAQELBQAwWTELMAkGA1UEBhMCQlIxEzAR
+                        BgNVBAoTCklDUC1CcmFzaWwxFTATBgNVBAsTDEFDIFNPTFVUSSB2NTEeMBwGA1UEAxMVQUMgU09M
+                        VVRJIE11bHRpcGxhIHY1MB4XDTI1MDYwOTE4MDUwMFoXDTI2MDYwOTE4MDUwMFowgdgxCzAJBgNV
+                        BAYTAkJSMRMwEQYDVQQKEwpJQ1AtQnJhc2lsMQswCQYDVQQIEwJCQTERMA8GA1UEBxMIU2FsdmFk
+                        b3IxHjAcBgNVBAsTFUFDIFNPTFVUSSBNdWx0aXBsYSB2NTEXMBUGA1UECxMOMzM0NTkwNzEwMDAx
+                        MDYxHDAaBgNVBAsTE0NlcnRpZmljYWRvIERpZ2l0YWwxGjAYBgNVBAsTEUNlcnRpZmljYWRvIFBK
+                        IEExMSEwHwYDVQQDExhTVVpBTk8gU0E6MTY0MDQyODcwMDAxNTUwggEiMA0GCSqGSIb3DQEBAQUA
+                        A4IBDwAwggEKAoIBAQCwgWxE0wEGfkn22LkDFhOrbPerW9jFBcon8tQEfgaU7MEP3Qu02XfnYqGg
+                        EBHmGeeIdjU8U6I0JylUBVq7DVSP7WNxGED5oclh4KwbPrbGN0GSfatoos64gUXMKT5bZTZ2XNUB
+                        DRkOh4XthKQ0JHyVG6zTybyuWQ7bvmQZaGpQ2u3cfcPXbzOSn21X2voG5U3+VwwLddR0EoFjSRTb
+                        Fr0VVx4w33BBPdmMQMvPR683ekVi6eigVHnigM8ITNQSDt9/Bpc0xeuPeNB9I1ZkA6S5wHieLr0/
+                        FAK+sWhIFQnOxNeSn7Op0q6WHpW5mAqGWNqgiiXKoCIYRKj/zExTkTO5AgMBAAGjggKEMIICgDAJ
+                        BgNVHRMEAjAAMB8GA1UdIwQYMBaAFMVS7SWACd+cgsifR8bdtF8x3bmxMFQGCCsGAQUFBwEBBEgw
+                        RjBEBggrBgEFBQcwAoY4aHR0cDovL2NjZC5hY3NvbHV0aS5jb20uYnIvbGNyL2FjLXNvbHV0aS1t
+                        dWx0aXBsYS12NS5wN2Iwgb8GA1UdEQSBtzCBtIEYai5vbGl2ZWlyYUBzdXphbm8uY29tLmJyoCoG
+                        BWBMAQMCoCETH0pPQU8gQUxCRVJUTyBGRVJOQU5ERVogREUgQUJSRVWgGQYFYEwBAwOgEBMOMTY0
+                        MDQyODcwMDAxNTWgOAYFYEwBAwSgLxMtMTMwMjE5NzAwMDYzMzQ3Njc5MDAwMDAwMDAwMDAwMDAw
+                        MDAwMDAwMDAwMDAwoBcGBWBMAQMHoA4TDDAwMDAwMDAwMDAwMDBdBgNVHSAEVjBUMFIGBmBMAQIB
+                        JjBIMEYGCCsGAQUFBwIBFjpodHRwOi8vY2NkLmFjc29sdXRpLmNvbS5ici9kb2NzL2RwYy1hYy1z
+                        b2x1dGktbXVsdGlwbGEucGRmMB0GA1UdJQQWMBQGCCsGAQUFBwMCBggrBgEFBQcDBDCBjAYDVR0f
+                        BIGEMIGBMD6gPKA6hjhodHRwOi8vY2NkLmFjc29sdXRpLmNvbS5ici9sY3IvYWMtc29sdXRpLW11
+                        bHRpcGxhLXY1LmNybDA/oD2gO4Y5aHR0cDovL2NjZDIuYWNzb2x1dGkuY29tLmJyL2xjci9hYy1z
+                        b2x1dGktbXVsdGlwbGEtdjUuY3JsMB0GA1UdDgQWBBQ7wTJ7gWVwjLJPk0SIcQfWZmy1/jAOBgNV
+                        HQ8BAf8EBAMCBeAwDQYJKoZIhvcNAQELBQADggIBAKDpY3foM54JyoqschMfXfFGhnuSDdpIAwb/
+                        sxKqGTWnlzl3rK4ARQQVrnxj/VsX1C9fYlUuX2FI/ATN9Gigc3868FMiB05A+lZ6NkwzWtDIohdl
+                        gWRKlwKynLjEJm9teImT2z3eZESvg23WsMkYpmGPdsQ1j+UW+iMiN+u8Q7zmlRvFyYwjvCcAekPq
+                        xK9ctJokYxYpR5U0e0zml4t1sB8TJoW/WBcos5MfnsR/lDftFc1EGrTu1a/B13QPJa1YBuG318Kh
+                        a5YZ6wwc6XyrRO3iyfaCznC6d9nTuG1sJiTG4McDL0zRXm8XuQGYQO72xe/vCR9lmf0k+ZTQyhWc
+                        xG8unR1VRWppVykodnaBJlcpSOAmRvfilCte6/TRuC0FIQBObT8G0IXp/6wzk/SDLO6E/p1gSPkP
+                        qteNGZpZ+g1wnJH0acVCjNwqUwQjRGJ67WHhdbP2xTtCFHBAqE0rX70liqm5w0pp5skX6XUTRrYm
+                        CSAWRCsLIxPvStOhqEe5l+CUYF1k1aaB8y4fAucksR7CLGdmK11XIjIKCph6WC470s+HIniri0n7
+                        OyuthwqdA78QDOmeDg63CVUb6kNXX+wE2Q0im9+886p9iAkSgg/QPR8+zua8rz33moXap7paDd+1
+                        10pHBOvx6gCch/De5Nq4NJl32JeWfKz1cah1doP+</X509Certificate>
+                </X509Data>
+            </KeyInfo>
+        </Signature>
+    </NFe>
+    <protNFe versao="4.00">
+        <infProt Id="NFe126250139789272">
+            <tpAmb>1</tpAmb>
+            <verAplic>NFEPE_P_4.3.5</verAplic>
+            <chNFe>26251216404287029056550010001762721022736522</chNFe>
+            <dhRecbto>2025-12-19T10:53:09-03:00</dhRecbto>
+            <nProt>126250139789272</nProt>
+            <digVal>NWhrqRXl7uGyxRw27ZJMueMX+zo=</digVal>
+            <cStat>100</cStat>
+            <xMotivo>Autorizado o uso da NF-e</xMotivo>
+        </infProt>
+    </protNFe>
+</nfeProc>

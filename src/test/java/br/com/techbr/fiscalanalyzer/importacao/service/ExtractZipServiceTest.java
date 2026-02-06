@@ -7,8 +7,7 @@ import br.com.techbr.fiscalanalyzer.importacao.model.ImportacaoStatus;
 import br.com.techbr.fiscalanalyzer.importacao.repository.ImportItemRepository;
 import br.com.techbr.fiscalanalyzer.importacao.repository.ImportacaoRepository;
 import br.com.techbr.fiscalanalyzer.queue.message.ExtractZipMessage;
-import br.com.techbr.fiscalanalyzer.queue.message.ParseXmlMessage;
-import br.com.techbr.fiscalanalyzer.queue.producer.ParseXmlProducer;
+import br.com.techbr.fiscalanalyzer.importacao.event.ParseXmlRequestedEvent;
 import br.com.techbr.fiscalanalyzer.storage.service.StorageService;
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import org.junit.jupiter.api.Test;
@@ -16,6 +15,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.test.util.ReflectionTestUtils;
 
 import java.io.ByteArrayInputStream;
@@ -52,7 +52,7 @@ class ExtractZipServiceTest {
     private StorageService storageService;
 
     @Mock
-    private ParseXmlProducer parseXmlProducer;
+    private ApplicationEventPublisher eventPublisher;
 
     @Test
     void process_criaItensEPublicaMensagens() throws Exception {
@@ -60,7 +60,7 @@ class ExtractZipServiceTest {
                 importacaoRepository,
                 importItemRepository,
                 storageService,
-                parseXmlProducer,
+                eventPublisher,
                 new SimpleMeterRegistry()
         );
 
@@ -91,8 +91,8 @@ class ExtractZipServiceTest {
 
         service.process(message, "corr-1");
 
-        ArgumentCaptor<ParseXmlMessage> msgCaptor = ArgumentCaptor.forClass(ParseXmlMessage.class);
-        verify(parseXmlProducer, atLeast(2)).send(msgCaptor.capture(), eq("corr-1"));
+        ArgumentCaptor<ParseXmlRequestedEvent> msgCaptor = ArgumentCaptor.forClass(ParseXmlRequestedEvent.class);
+        verify(eventPublisher, atLeast(2)).publishEvent(msgCaptor.capture());
         assertEquals(2, msgCaptor.getAllValues().size());
 
         ArgumentCaptor<Importacao> importCaptor = ArgumentCaptor.forClass(Importacao.class);
@@ -108,7 +108,7 @@ class ExtractZipServiceTest {
                 importacaoRepository,
                 importItemRepository,
                 storageService,
-                parseXmlProducer,
+                eventPublisher,
                 new SimpleMeterRegistry()
         );
 
@@ -142,8 +142,8 @@ class ExtractZipServiceTest {
 
         service.process(message, "corr-2");
 
-        ArgumentCaptor<ParseXmlMessage> msgCaptor = ArgumentCaptor.forClass(ParseXmlMessage.class);
-        verify(parseXmlProducer).send(msgCaptor.capture(), eq("corr-2"));
+        ArgumentCaptor<ParseXmlRequestedEvent> msgCaptor = ArgumentCaptor.forClass(ParseXmlRequestedEvent.class);
+        verify(eventPublisher).publishEvent(msgCaptor.capture());
         assertEquals(1, msgCaptor.getAllValues().size());
         assertEquals(20L, msgCaptor.getValue().importItemId());
 
@@ -156,7 +156,7 @@ class ExtractZipServiceTest {
                 importacaoRepository,
                 importItemRepository,
                 storageService,
-                parseXmlProducer,
+                eventPublisher,
                 new SimpleMeterRegistry()
         );
 
@@ -205,7 +205,7 @@ class ExtractZipServiceTest {
                 importacaoRepository,
                 importItemRepository,
                 storageService,
-                parseXmlProducer,
+                eventPublisher,
                 new SimpleMeterRegistry()
         );
 
@@ -241,7 +241,7 @@ class ExtractZipServiceTest {
         assertTrue(last.getErroMensagem() != null && !last.getErroMensagem().isBlank());
 
         verify(importItemRepository, never()).save(any(ImportItem.class));
-        verify(parseXmlProducer, never()).send(any(ParseXmlMessage.class), any());
+        verify(eventPublisher, never()).publishEvent(any(ParseXmlRequestedEvent.class));
     }
 
     @Test
@@ -250,7 +250,7 @@ class ExtractZipServiceTest {
                 importacaoRepository,
                 importItemRepository,
                 storageService,
-                parseXmlProducer,
+                eventPublisher,
                 new SimpleMeterRegistry()
         );
 
@@ -279,7 +279,7 @@ class ExtractZipServiceTest {
         assertEquals(ImportacaoStatus.EXTRAIDO, last.getStatus());
         assertEquals(0, last.getTotalEncontrado());
 
-        verify(parseXmlProducer, never()).send(any(ParseXmlMessage.class), any());
+        verify(eventPublisher, never()).publishEvent(any(ParseXmlRequestedEvent.class));
     }
 
     @Test
@@ -288,7 +288,7 @@ class ExtractZipServiceTest {
                 importacaoRepository,
                 importItemRepository,
                 storageService,
-                parseXmlProducer,
+                eventPublisher,
                 new SimpleMeterRegistry()
         );
 

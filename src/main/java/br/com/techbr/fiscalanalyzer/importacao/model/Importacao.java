@@ -54,12 +54,21 @@ public class Importacao {
     @Column(name = "created_at", nullable = false)
     private Instant createdAt;
 
+    @Column(name = "updated_at", nullable = false)
+    private Instant updatedAt;
+
     @Column(name = "finished_at")
     private Instant finishedAt;
 
     @PrePersist
     void prePersist() {
         if (createdAt == null) createdAt = Instant.now();
+        if (updatedAt == null) updatedAt = Instant.now();
+    }
+
+    @PreUpdate
+    void preUpdate() {
+        updatedAt = Instant.now();
     }
 
     // getters/setters
@@ -91,6 +100,8 @@ public class Importacao {
     public String getErroMensagem() { return erroMensagem; }
     public void setErroMensagem(String erroMensagem) { this.erroMensagem = erroMensagem; }
     public Instant getCreatedAt() { return createdAt; }
+    public Instant getUpdatedAt() { return updatedAt; }
+    public void setUpdatedAt(Instant updatedAt) { this.updatedAt = updatedAt; }
     public Instant getFinishedAt() { return finishedAt; }
     public void setFinishedAt(Instant finishedAt) { this.finishedAt = finishedAt; }
 }

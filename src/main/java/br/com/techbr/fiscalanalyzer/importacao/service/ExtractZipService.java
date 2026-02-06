@@ -9,14 +9,14 @@ import br.com.techbr.fiscalanalyzer.importacao.model.ImportacaoStatus;
 import br.com.techbr.fiscalanalyzer.importacao.repository.ImportItemRepository;
 import br.com.techbr.fiscalanalyzer.importacao.repository.ImportacaoRepository;
 import br.com.techbr.fiscalanalyzer.queue.message.ExtractZipMessage;
-import br.com.techbr.fiscalanalyzer.queue.message.ParseXmlMessage;
-import br.com.techbr.fiscalanalyzer.queue.producer.ParseXmlProducer;
+import br.com.techbr.fiscalanalyzer.importacao.event.ParseXmlRequestedEvent;
 import br.com.techbr.fiscalanalyzer.storage.service.StorageService;
 import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.Timer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -37,7 +37,7 @@ public class ExtractZipService {
     private final ImportacaoRepository importacaoRepository;
     private final ImportItemRepository importItemRepository;
     private final StorageService storageService;
-    private final ParseXmlProducer parseXmlProducer;
+    private final ApplicationEventPublisher eventPublisher;
     private final MeterRegistry meterRegistry;
     private final Counter itemsCreatedCounter;
     private final Timer extractionTimer;
@@ -45,12 +45,12 @@ public class ExtractZipService {
     public ExtractZipService(ImportacaoRepository importacaoRepository,
                              ImportItemRepository importItemRepository,
                              StorageService storageService,
-                             ParseXmlProducer parseXmlProducer,
+                             ApplicationEventPublisher eventPublisher,
                              MeterRegistry meterRegistry) {
         this.importacaoRepository = importacaoRepository;
         this.importItemRepository = importItemRepository;
         this.storageService = storageService;
-        this.parseXmlProducer = parseXmlProducer;
+        this.eventPublisher = eventPublisher;
         this.meterRegistry = meterRegistry;
         this.itemsCreatedCounter = meterRegistry.counter("import.extract.items.created");
         this.extractionTimer = Timer.builder("import.extract.duration").register(meterRegistry);
@@ -95,14 +95,15 @@ public class ExtractZipService {
 
                 ImportItem item = result.item();
                 if (item.getStatus() == ImportItemStatus.PENDENTE || item.getStatus() == ImportItemStatus.PENDENTE_PARSE) {
-                    parseXmlProducer.send(new ParseXmlMessage(
+                    eventPublisher.publishEvent(new ParseXmlRequestedEvent(
                             importacao.getId(),
                             item.getId(),
                             message.bucket(),
                             message.objectKey(),
                             entryName,
-                            message.sha256()
-                    ), correlationId);
+                            message.sha256(),
+                            correlationId
+                    ));
                     if (result.created()) {
                         created++;
                     }

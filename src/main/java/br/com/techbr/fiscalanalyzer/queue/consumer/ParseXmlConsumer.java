@@ -2,8 +2,8 @@ package br.com.techbr.fiscalanalyzer.queue.consumer;
 
 import br.com.techbr.fiscalanalyzer.common.exception.InfraException;
 import br.com.techbr.fiscalanalyzer.common.exception.ValidationException;
-import br.com.techbr.fiscalanalyzer.importacao.service.ExtractZipService;
-import br.com.techbr.fiscalanalyzer.queue.message.ExtractZipMessage;
+import br.com.techbr.fiscalanalyzer.importacao.service.ParseXmlService;
+import br.com.techbr.fiscalanalyzer.queue.message.ParseXmlMessage;
 import br.com.techbr.fiscalanalyzer.queue.util.RabbitHeaderUtils;
 import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.MeterRegistry;
@@ -17,22 +17,22 @@ import org.springframework.stereotype.Component;
 import java.util.UUID;
 
 @Component
-public class ExtractZipConsumer {
+public class ParseXmlConsumer {
 
-    private static final Logger log = LoggerFactory.getLogger(ExtractZipConsumer.class);
+    private static final Logger log = LoggerFactory.getLogger(ParseXmlConsumer.class);
 
-    private final ExtractZipService extractZipService;
+    private final ParseXmlService parseXmlService;
     private final Counter retryCounter;
 
-    public ExtractZipConsumer(ExtractZipService extractZipService, MeterRegistry meterRegistry) {
-        this.extractZipService = extractZipService;
+    public ParseXmlConsumer(ParseXmlService parseXmlService, MeterRegistry meterRegistry) {
+        this.parseXmlService = parseXmlService;
         this.retryCounter = Counter.builder("queue.retry")
-                .tag("queue", "extractZipQueue")
+                .tag("queue", "parseXmlQueue")
                 .register(meterRegistry);
     }
 
-    @RabbitListener(queues = "${app.queue.extract-zip}", containerFactory = "extractRabbitListenerContainerFactory")
-    public void handle(ExtractZipMessage message,
+    @RabbitListener(queues = "${app.queue.parse-xml}", containerFactory = "parseRabbitListenerContainerFactory")
+    public void handle(ParseXmlMessage message,
                        @Header(value = AmqpHeaders.CORRELATION_ID, required = false) String correlationId,
                        @Header(name = "x-death", required = false) Object xDeath) {
         String corr = correlationId != null ? correlationId : UUID.randomUUID().toString();
@@ -41,17 +41,13 @@ public class ExtractZipConsumer {
             retryCounter.increment();
         }
         try {
-            extractZipService.process(message, corr);
+            parseXmlService.process(message, corr);
         } catch (ValidationException ex) {
-            log.warn("import.extract.validation importacaoId={} correlationId={} retryCount={} message={}",
-                    message.importacaoId(), corr, retryCount, ex.getMessage());
+            log.warn("import.parse.validation importacaoId={} importItemId={} correlationId={} retryCount={} message={}",
+                    message.importacaoId(), message.importItemId(), corr, retryCount, ex.getMessage());
         } catch (InfraException ex) {
-            log.error("import.extract.retry importacaoId={} correlationId={} retryCount={} message={}",
-                    message.importacaoId(), corr, retryCount, ex.getMessage(), ex);
-            throw ex;
-        } catch (RuntimeException ex) {
-            log.error("import.extract.error importacaoId={} correlationId={} retryCount={} message={}",
-                    message.importacaoId(), corr, retryCount, ex.getMessage(), ex);
+            log.error("import.parse.retry importacaoId={} importItemId={} correlationId={} retryCount={} message={}",
+                    message.importacaoId(), message.importItemId(), corr, retryCount, ex.getMessage(), ex);
             throw ex;
         }
     }

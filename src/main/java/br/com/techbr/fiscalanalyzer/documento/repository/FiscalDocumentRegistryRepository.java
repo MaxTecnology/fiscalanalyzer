@@ -7,4 +7,5 @@ import java.util.Optional;
 
 public interface FiscalDocumentRegistryRepository extends JpaRepository<FiscalDocumentRegistry, Long> {
     Optional<FiscalDocumentRegistry> findByEmpresaIdAndAccessKey(Long empresaId, String accessKey);
+    Optional<FiscalDocumentRegistry> findByTenantIdAndEmpresaIdAndAccessKey(Long tenantId, Long empresaId, String accessKey);
 }

@@ -124,7 +124,8 @@ Tecnologia:
 2. ZIP é lido em streaming
 3. XMLs são listados e validados
 4. Um `import_item` é criado por XML
-5. Mensagens de parsing são enfileiradas
+5. Mensagens de parsing são enfileiradas **após COMMIT** da transação de extração
+   (via evento + `@TransactionalEventListener`), evitando corrida com o parser
 
 ---
 

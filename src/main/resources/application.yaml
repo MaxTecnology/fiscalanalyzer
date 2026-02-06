@@ -17,5 +17,13 @@ app:
     max-zip-size: 200MB
   queue:
     exchange: import.exchange
+    dlx: import.dlx
     extract-zip: import.extract
+    extract-dlq: import.extract.dlq
     parse-xml: import.parse
+    parse-dlq: import.parse.dlq
+    retry:
+      max-attempts: 5
+      initial-interval: 1000
+      multiplier: 2.0
+      max-interval: 30000
