@@ -1,8 +1,8 @@
 spring:
   datasource:
-    url: jdbc:postgresql://postgres:5432/fiscalanalyzer
-    username: fiscalanalyzer
-    password: fiscalanalyzer
+    url: ${DB_URL:jdbc:postgresql://postgres:5432/fiscalanalyzer}
+    username: ${DB_USERNAME:fiscalanalyzer}
+    password: ${DB_PASSWORD:fiscalanalyzer}
     driver-class-name: org.postgresql.Driver
 
   jpa:
@@ -18,10 +18,10 @@ spring:
     enabled: true
 
   rabbitmq:
-    host: rabbitmq
-    port: 5672
-    username: fiscalanalyzer
-    password: fiscalanalyzer
+    host: ${RABBITMQ_HOST:rabbitmq}
+    port: ${RABBITMQ_PORT:5672}
+    username: ${RABBITMQ_USER:fiscalanalyzer}
+    password: ${RABBITMQ_PASSWORD:fiscalanalyzer}
 
 management:
   endpoints:
@@ -47,9 +47,9 @@ app:
 
 storage:
   s3:
-    endpoint: http://minio:9000
-    access-key: fiscalanalyzer
-    secret-key: fiscalanalyzer
-    bucket: fiscal-raw
-    region: us-east-1
-    path-style-access: true
+    endpoint: ${STORAGE_S3_ENDPOINT}
+    access-key: ${STORAGE_S3_ACCESS_KEY}
+    secret-key: ${STORAGE_S3_SECRET_KEY}
+    bucket: ${STORAGE_S3_BUCKET}
+    region: ${STORAGE_S3_REGION:us-east-1}
+    path-style-access: ${STORAGE_S3_PATH_STYLE_ACCESS:false}

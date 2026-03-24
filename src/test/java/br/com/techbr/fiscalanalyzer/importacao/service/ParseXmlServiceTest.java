@@ -261,6 +261,55 @@ class ParseXmlServiceTest {
     }
 
     @Test
+    void process_manifest_objetoDireto_sucesso() {
+        ParseXmlService service = new ParseXmlService(
+                importacaoRepository,
+                importItemRepository,
+                fiscalDocumentRepository,
+                registryRepository,
+                fiscalItemRepository,
+                storageService,
+                new SimpleMeterRegistry()
+        );
+
+        Importacao importacao = new Importacao();
+        ReflectionTestUtils.setField(importacao, "id", 8L);
+        importacao.setTenantId(1L);
+        importacao.setEmpresaId(2L);
+
+        ImportItem item = new ImportItem();
+        ReflectionTestUtils.setField(item, "id", 18L);
+        item.setStatus(ImportItemStatus.PENDENTE_PARSE);
+        item.setXmlPath("99/99/a.xml");
+        item.setStorageObjectKey("99/99/a.xml");
+
+        when(importItemRepository.findById(18L)).thenReturn(Optional.of(item));
+        when(importacaoRepository.findById(8L)).thenReturn(Optional.of(importacao));
+        when(importacaoRepository.save(any(Importacao.class))).thenAnswer(i -> i.getArgument(0));
+        when(importItemRepository.save(any(ImportItem.class))).thenAnswer(i -> i.getArgument(0));
+        when(importItemRepository.countByImportacaoIdAndStatusIn(eq(8L), any(EnumSet.class))).thenReturn(0L);
+        when(registryRepository.findByTenantIdAndEmpresaIdAndAccessKey(eq(1L), eq(2L), any())).thenReturn(Optional.empty());
+        when(registryRepository.save(any(FiscalDocumentRegistry.class))).thenAnswer(i -> i.getArgument(0));
+        when(fiscalDocumentRepository.save(any(FiscalDocument.class))).thenAnswer(i -> i.getArgument(0));
+
+        when(storageService.get("99/99/a.xml"))
+                .thenReturn(new ByteArrayInputStream(minimalNfeXmlWithNamespace().getBytes(StandardCharsets.UTF_8)));
+
+        service.process(new ParseXmlMessage(8L, 18L, "fiscal-raw", "99/99/a.xml", null, "abc"), "corr");
+
+        ArgumentCaptor<FiscalDocument> docCaptor = ArgumentCaptor.forClass(FiscalDocument.class);
+        verify(fiscalDocumentRepository).save(docCaptor.capture());
+        FiscalDocument savedDoc = docCaptor.getValue();
+        assertEquals("99/99/a.xml", savedDoc.getXmlPath());
+
+        ArgumentCaptor<ImportItem> itemCaptor = ArgumentCaptor.forClass(ImportItem.class);
+        verify(importItemRepository, atLeastOnce()).save(itemCaptor.capture());
+        ImportItem last = itemCaptor.getAllValues().get(itemCaptor.getAllValues().size() - 1);
+        assertEquals(ImportItemStatus.PARSEADO, last.getStatus());
+        assertEquals("35191111111111111111550010000000011000000010", last.getAccessKey());
+    }
+
+    @Test
     void process_xmlInvalido_marcaFalha() throws Exception {
         ParseXmlService service = new ParseXmlService(
                 importacaoRepository,

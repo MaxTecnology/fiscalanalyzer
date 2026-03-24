@@ -1,0 +1,105 @@
+### FiscalAnalyzer - HTTP Routes
+### Use com IntelliJ HTTP Client ou extensão REST Client (VS Code)
+### Pré-requisito: API local rodando (ex.: ./scripts/run-local.sh)
+
+@baseUrl = http://localhost:8080
+@tenantId = 99
+@empresaId = 99
+@importacaoId = 1
+@accessKey = 35191111111111111111550010000000011000000010
+
+###
+### Health
+GET {{baseUrl}}/actuator/health
+
+###
+### Upload ZIP (rota principal)
+POST {{baseUrl}}/imports/upload?tenantId={{tenantId}}&empresaId={{empresaId}}
+Content-Type: multipart/form-data; boundary=UploadBoundary
+
+--UploadBoundary
+Content-Disposition: form-data; name="file"; filename="nfe.zip"
+Content-Type: application/zip
+
+< ./docs/nfe.zip
+--UploadBoundary--
+
+###
+### Upload ZIP (alias legado)
+POST {{baseUrl}}/api/importacoes/upload?tenantId={{tenantId}}&empresaId={{empresaId}}
+Content-Type: multipart/form-data; boundary=UploadBoundary
+
+--UploadBoundary
+Content-Disposition: form-data; name="file"; filename="nfe.zip"
+Content-Type: application/zip
+
+< ./docs/nfe.zip
+--UploadBoundary--
+
+###
+### Manifest (rota principal)
+POST {{baseUrl}}/imports/manifest
+Content-Type: application/json
+
+{
+  "tenantId": {{tenantId}},
+  "empresaId": {{empresaId}},
+  "entries": [
+    {
+      "objectKey": "99/99/9f81409800c24998f96a4f8e2e1bab1dfe93144563fcb2c3b946b5461ad15869.xml",
+      "sha256": "9f81409800c24998f96a4f8e2e1bab1dfe93144563fcb2c3b946b5461ad15869",
+      "sizeBytes": 1500,
+      "originalFileName": "nfe-001.xml"
+    }
+  ]
+}
+
+###
+### Manifest (alias legado)
+POST {{baseUrl}}/api/importacoes/manifest
+Content-Type: application/json
+
+{
+  "tenantId": {{tenantId}},
+  "empresaId": {{empresaId}},
+  "entries": [
+    {
+      "objectKey": "99/99/nfe-001.xml",
+      "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "sizeBytes": 14320,
+      "originalFileName": "nfe-001.xml"
+    }
+  ]
+}
+
+###
+### Importação por ID
+GET {{baseUrl}}/imports/{{importacaoId}}
+
+###
+### Itens da importação (paginado)
+GET {{baseUrl}}/imports/{{importacaoId}}/items?page=0&size=20
+
+###
+### Itens da importação por status
+GET {{baseUrl}}/imports/{{importacaoId}}/items?status=PARSEADO&page=0&size=20
+
+###
+### Documento por chave de acesso
+GET {{baseUrl}}/documents/{{accessKey}}?tenantId={{tenantId}}&empresaId={{empresaId}}
+
+###
+### Cenário de erro 422 (objectKey inexistente)
+POST {{baseUrl}}/imports/manifest
+Content-Type: application/json
+
+{
+  "tenantId": {{tenantId}},
+  "empresaId": {{empresaId}},
+  "entries": [
+    {
+      "objectKey": "99/99/nao-existe.xml",
+      "sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+    }
+  ]
+}

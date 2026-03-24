@@ -1,9 +1,12 @@
 package br.com.techbr.fiscalanalyzer.importacao.controller;
 
 import br.com.techbr.fiscalanalyzer.importacao.dto.ImportacaoResponse;
-import br.com.techbr.fiscalanalyzer.importacao.model.Importacao;
+import br.com.techbr.fiscalanalyzer.importacao.dto.ManifestRequest;
+import br.com.techbr.fiscalanalyzer.importacao.dto.ManifestResponse;
 import br.com.techbr.fiscalanalyzer.importacao.service.ImportacaoService;
+import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
@@ -26,14 +29,15 @@ public class ImportacaoController {
             @RequestParam @NotNull Long empresaId,
             @RequestPart("file") MultipartFile file
     ) {
-        Importacao imp = importacaoService.criarImportacao(tenantId, empresaId, file);
+        var imp = importacaoService.criarImportacao(tenantId, empresaId, file);
         return new ImportacaoResponse(imp.getId(), imp.getStatus().name());
     }
 
-    @GetMapping("/{id}")
-    public ImportacaoResponse status(@PathVariable Long id) {
-        Importacao imp = importacaoService.buscarPorId(id); // vamos criar
-        return new ImportacaoResponse(imp.getId(), imp.getStatus().name());
+    @PostMapping(value = "/manifest", consumes = MediaType.APPLICATION_JSON_VALUE)
+    @ResponseStatus(HttpStatus.ACCEPTED)
+    public ManifestResponse manifest(@RequestBody @Valid ManifestRequest request) {
+        var imp = importacaoService.criarImportacaoPorManifesto(request);
+        return new ManifestResponse(imp.getId(), imp.getStatus().name(), imp.getTotalEncontrado());
     }
 
 }

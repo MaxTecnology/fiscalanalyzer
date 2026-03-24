@@ -22,6 +22,15 @@ app:
     extract-dlq: import.extract.dlq
     parse-xml: import.parse
     parse-dlq: import.parse.dlq
+    listener:
+      extract:
+        concurrency: 1
+        max-concurrency: 2
+        prefetch: 10
+      parse:
+        concurrency: 2
+        max-concurrency: 8
+        prefetch: 50
     retry:
       max-attempts: 5
       initial-interval: 1000

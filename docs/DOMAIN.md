@@ -14,6 +14,9 @@ em formato **XML** (NF-e modelo 55 e NFC-e modelo 65).
 O sistema importa arquivos em lote (principalmente via `.zip`), extrai os XMLs, lê em modo streaming,
 normaliza os dados e persiste no banco para consultas e cálculos fiscais.
 
+Para alto volume, também suporta ingestão por **agente/desktop** com envio direto de XMLs para storage
+e criação de lote por manifesto.
+
 O foco do produto é permitir análises em nível de **item da nota**, pois os impostos e regras fiscais
 são predominantemente determinados por CFOP/CST/CSOSN/NCM e bases por item.
 
@@ -24,6 +27,7 @@ são predominantemente determinados por CFOP/CST/CSOSN/NCM e bases por item.
 ### 2.1 Incluído
 - Importação em lote de XMLs de **NF-e (55)** e **NFC-e (65)**.
 - Upload de arquivo `.zip` contendo XMLs e subpastas misturadas.
+- Ingestão em alto volume via manifesto de objetos no storage.
 - Processamento assíncrono via fila (RabbitMQ) com workers.
 - Persistência em PostgreSQL:
     - cabeçalho do documento (fiscal_document)
@@ -37,6 +41,7 @@ são predominantemente determinados por CFOP/CST/CSOSN/NCM e bases por item.
 - Autenticação/Autorização final (RBAC) e multi-tenant avançado.
 - Cálculo final de “imposto a recuperar” como resultado persistido.
   (Por enquanto, apenas armazenamento de fatos fiscais e consultas.)
+- Publicação direta no RabbitMQ por sistemas externos (incluindo agente).
 
 ---
 
@@ -71,12 +76,35 @@ Campos essenciais:
 ### 3.3 Importação
 Uma **Importação** representa um lote enviado pelo usuário (normalmente um `.zip`).
 No sistema:
-- `importacao`: registro do upload (status, hash, contadores)
+- `importacao`: registro do lote (status, hash, contadores, `source_type`)
 - `import_item`: cada XML individual extraído/listado do lote (status, erro)
 
 A importação é processada de forma assíncrona:
 - a API só registra e salva o arquivo (não parseia)
 - workers processam extração e parsing via fila
+
+### 3.4 Manifesto de Ingestão
+Um **Manifesto** representa uma lista de XMLs já enviados para storage.
+
+Campos típicos:
+- `tenant_id`, `empresa_id`
+- `object_key`
+- `sha256`
+- `size`
+- metadados opcionais do arquivo origem
+
+O manifesto é a fonte oficial para criação de `import_item` em cenários de alto volume.
+
+Campos persistidos relevantes:
+- `importacao.source_type = MANIFEST`
+- `import_item.storage_object_key` para leitura direta do XML no storage
+
+### 3.5 Agente de Ingestão
+O **Agente** (desktop/headless) roda no ambiente do cliente para:
+- coletar XMLs de diretórios locais
+- fazer upload concorrente para storage S3-compatível
+- gerar e enviar manifesto para a API
+- retomar processamento em caso de falha/rede instável
 
 ---
 
@@ -100,6 +128,8 @@ Sempre usar fila + workers para:
 - retry
 - controle de concorrência
 - previsibilidade
+
+Cliente externo não publica na fila diretamente; o backend é o único publicador oficial.
 
 ### 4.4 Parsing streaming
 XML deve ser lido em streaming (StAX/SAX) para reduzir consumo de memória e permitir alto volume.

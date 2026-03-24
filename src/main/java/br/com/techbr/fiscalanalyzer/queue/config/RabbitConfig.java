@@ -136,12 +136,18 @@ public class RabbitConfig {
     public SimpleRabbitListenerContainerFactory extractRabbitListenerContainerFactory(
             ConnectionFactory connectionFactory,
             MessageConverter messageConverter,
-            MethodInterceptor extractRetryInterceptor
+            MethodInterceptor extractRetryInterceptor,
+            @Value("${app.queue.listener.extract.concurrency:1}") int concurrency,
+            @Value("${app.queue.listener.extract.max-concurrency:2}") int maxConcurrency,
+            @Value("${app.queue.listener.extract.prefetch:10}") int prefetch
     ) {
         SimpleRabbitListenerContainerFactory factory = new SimpleRabbitListenerContainerFactory();
         factory.setConnectionFactory(connectionFactory);
         factory.setMessageConverter(messageConverter);
         factory.setAdviceChain(extractRetryInterceptor);
+        factory.setConcurrentConsumers(Math.max(1, concurrency));
+        factory.setMaxConcurrentConsumers(Math.max(Math.max(1, concurrency), maxConcurrency));
+        factory.setPrefetchCount(Math.max(1, prefetch));
         return factory;
     }
 
@@ -149,12 +155,33 @@ public class RabbitConfig {
     public SimpleRabbitListenerContainerFactory parseRabbitListenerContainerFactory(
             ConnectionFactory connectionFactory,
             MessageConverter messageConverter,
-            MethodInterceptor parseRetryInterceptor
+            MethodInterceptor parseRetryInterceptor,
+            @Value("${app.queue.listener.parse.concurrency:2}") int concurrency,
+            @Value("${app.queue.listener.parse.max-concurrency:8}") int maxConcurrency,
+            @Value("${app.queue.listener.parse.prefetch:50}") int prefetch
     ) {
         SimpleRabbitListenerContainerFactory factory = new SimpleRabbitListenerContainerFactory();
         factory.setConnectionFactory(connectionFactory);
         factory.setMessageConverter(messageConverter);
         factory.setAdviceChain(parseRetryInterceptor);
+        factory.setConcurrentConsumers(Math.max(1, concurrency));
+        factory.setMaxConcurrentConsumers(Math.max(Math.max(1, concurrency), maxConcurrency));
+        factory.setPrefetchCount(Math.max(1, prefetch));
+        return factory;
+    }
+
+    @Bean
+    public SimpleRabbitListenerContainerFactory dlqRabbitListenerContainerFactory(
+            ConnectionFactory connectionFactory,
+            MessageConverter messageConverter
+    ) {
+        SimpleRabbitListenerContainerFactory factory = new SimpleRabbitListenerContainerFactory();
+        factory.setConnectionFactory(connectionFactory);
+        factory.setMessageConverter(messageConverter);
+        factory.setConcurrentConsumers(1);
+        factory.setMaxConcurrentConsumers(1);
+        factory.setPrefetchCount(1);
+        // Sem retry: falhas nos DLQ consumers são logadas e ACKadas internamente
         return factory;
     }
 

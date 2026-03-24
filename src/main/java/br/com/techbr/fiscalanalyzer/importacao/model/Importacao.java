@@ -21,6 +21,10 @@ public class Importacao {
     @Column(name = "status", nullable = false, length = 30)
     private ImportacaoStatus status;
 
+    @Enumerated(EnumType.STRING)
+    @Column(name = "source_type", nullable = false, length = 20)
+    private ImportacaoSourceType sourceType = ImportacaoSourceType.ZIP;
+
     @Column(name = "arquivo_nome", nullable = false, length = 255)
     private String arquivoNome;
 
@@ -64,6 +68,7 @@ public class Importacao {
     void prePersist() {
         if (createdAt == null) createdAt = Instant.now();
         if (updatedAt == null) updatedAt = Instant.now();
+        if (sourceType == null) sourceType = ImportacaoSourceType.ZIP;
     }
 
     @PreUpdate
@@ -79,6 +84,8 @@ public class Importacao {
     public void setEmpresaId(Long empresaId) { this.empresaId = empresaId; }
     public ImportacaoStatus getStatus() { return status; }
     public void setStatus(ImportacaoStatus status) { this.status = status; }
+    public ImportacaoSourceType getSourceType() { return sourceType; }
+    public void setSourceType(ImportacaoSourceType sourceType) { this.sourceType = sourceType; }
     public String getArquivoNome() { return arquivoNome; }
     public void setArquivoNome(String arquivoNome) { this.arquivoNome = arquivoNome; }
     public String getArquivoPath() { return arquivoPath; }

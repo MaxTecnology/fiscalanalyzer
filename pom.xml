@@ -5,14 +5,14 @@
 	<parent>
 		<groupId>org.springframework.boot</groupId>
 		<artifactId>spring-boot-starter-parent</artifactId>
-		<version>4.0.2</version>
+		<version>4.0.3</version>
 		<relativePath/> <!-- lookup parent from repository -->
 	</parent>
 	<groupId>br.com.techbr</groupId>
 	<artifactId>fiscalanalyzer</artifactId>
 	<version>0.0.1-SNAPSHOT</version>
 	<name>FiscalAnalyzer</name>
-	<description>lataforma de ingestão, análise e validação fiscal baseada em XML de documentos fiscais</description>
+	<description>plataforma de ingestão, análise e validação fiscal baseada em XML de documentos fiscais</description>
 	<url/>
 	<licenses>
 		<license/>
@@ -102,7 +102,13 @@
 		<dependency>
 			<groupId>io.minio</groupId>
 			<artifactId>minio</artifactId>
-			<version>8.5.12</version>
+			<version>8.6.0</version>
+		</dependency>
+
+		<dependency>
+			<groupId>com.squareup.okhttp3</groupId>
+			<artifactId>okhttp</artifactId>
+			<version>4.12.0</version>
 		</dependency>
 
 	</dependencies>

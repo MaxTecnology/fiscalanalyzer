@@ -27,6 +27,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.StringUtils;
 
 import java.io.InputStream;
 import java.security.DigestInputStream;
@@ -45,7 +46,8 @@ public class ParseXmlService {
             ImportItemStatus.PARSEADO,
             ImportItemStatus.DUPLICADO,
             ImportItemStatus.FALHA_PARSE,
-            ImportItemStatus.ERRO
+            ImportItemStatus.ERRO,
+            ImportItemStatus.FALHA_PERMANENTE
     );
     private static final Set<ImportItemStatus> NON_FINAL_STATUSES = EnumSet.of(
             ImportItemStatus.PENDENTE,
@@ -107,106 +109,93 @@ public class ParseXmlService {
         item.setStatus(ImportItemStatus.PROCESSANDO);
         importItemRepository.save(item);
 
-        try (InputStream zipStream = storageService.get(message.objectKeyZip());
-             ZipInputStream zis = new ZipInputStream(zipStream)) {
+        try {
+            ParsedPayload payload = parsePayload(message, item);
+            ParsedNfe parsed = payload.parsed();
+            String xmlHash = payload.xmlHash();
 
-            ZipEntry entry;
-            while ((entry = zis.getNextEntry()) != null) {
-                if (entry.isDirectory()) continue;
-                if (!entry.getName().equals(message.zipEntryName())) continue;
-
-                MessageDigest digest = MessageDigest.getInstance("SHA-256");
-                DigestInputStream dis = new DigestInputStream(zis, digest);
-                ParsedNfe parsed = nfeXmlParser.parse(dis);
-
-                item.setModel(parsed.model());
-                item.setAccessKey(parsed.accessKey());
-                item.setIssueDate(parsed.issueDate());
-
-                String xmlHash = bytesToHex(digest.digest());
-                item.setXmlHash(xmlHash);
-
-                Optional<FiscalDocumentRegistry> existing = registryRepository
-                        .findByTenantIdAndEmpresaIdAndAccessKey(importacao.getTenantId(), importacao.getEmpresaId(), parsed.accessKey());
-
-                if (existing.isPresent()) {
-                    item.setStatus(ImportItemStatus.DUPLICADO);
-                    importItemRepository.save(item);
-                    duplicateCounter.increment();
-                    finalizeImportacao(importacao, item, false);
-                    log.info("import.parse.duplicate importacaoId={} importItemId={} correlationId={} accessKey={}",
-                            importacao.getId(), item.getId(), correlationId, parsed.accessKey());
-                    sample.stop(parseTimer);
-                    return;
-                }
-
-                FiscalDocument doc = new FiscalDocument();
-                doc.setTenantId(importacao.getTenantId());
-                doc.setEmpresaId(importacao.getEmpresaId());
-                doc.setModel(parsed.model());
-                doc.setAccessKey(parsed.accessKey());
-                doc.setIssueDate(parsed.issueDate());
-                doc.setIssueDateTime(parsed.issueDateTime());
-                doc.setOperationType(parsed.operationType());
-                doc.setEmitCnpj(parsed.emitCnpj());
-                doc.setDestCnpj(parsed.destCnpj());
-                doc.setTotalProducts(parsed.totalProducts());
-                doc.setTotalAmount(parsed.totalAmount());
-                doc.setTotalIcms(parsed.totalIcms());
-                doc.setTotalPis(parsed.totalPis());
-                doc.setTotalCofins(parsed.totalCofins());
-                doc.setImportacao(importacao);
-                doc.setXmlPath(message.zipEntryName());
-                doc.setXmlHash(xmlHash);
-
-                FiscalDocument savedDoc = fiscalDocumentRepository.save(doc);
-
-                try {
-                    FiscalDocumentRegistry registry = new FiscalDocumentRegistry();
-                    registry.setTenantId(importacao.getTenantId());
-                    registry.setEmpresaId(importacao.getEmpresaId());
-                    registry.setAccessKey(parsed.accessKey());
-                    registry.setFiscalDocument(savedDoc);
-                    registryRepository.save(registry);
-
-                    if (!parsed.items().isEmpty()) {
-                        java.util.List<FiscalItem> items = new java.util.ArrayList<>();
-                        for (ParsedNfeItem parsedItem : parsed.items()) {
-                            items.add(toFiscalItem(savedDoc, parsedItem));
-                        }
-                        fiscalItemRepository.saveAll(items);
-                    }
-
-                    item.setStatus(ImportItemStatus.PARSEADO);
-                    importItemRepository.save(item);
-                    successCounter.increment();
-                    finalizeImportacao(importacao, item, false);
-
-                    log.info("import.parse.success importacaoId={} importItemId={} correlationId={} accessKey={}",
-                            importacao.getId(), item.getId(), correlationId, parsed.accessKey());
-                    sample.stop(parseTimer);
-                    return;
-                } catch (DataIntegrityViolationException ex) {
-                    item.setStatus(ImportItemStatus.DUPLICADO);
-                    importItemRepository.save(item);
-                    duplicateCounter.increment();
-                    finalizeImportacao(importacao, item, false);
-
-                    log.info("import.parse.duplicate_race importacaoId={} importItemId={} correlationId={} accessKey={}",
-                            importacao.getId(), item.getId(), correlationId, parsed.accessKey());
-                    sample.stop(parseTimer);
-                    return;
-                }
+            item.setModel(parsed.model());
+            item.setAccessKey(parsed.accessKey());
+            item.setIssueDate(parsed.issueDate());
+            item.setXmlHash(xmlHash);
+            if (!StringUtils.hasText(item.getXmlPath())) {
+                item.setXmlPath(payload.xmlPath());
             }
 
-            failItem(item, "XML_NAO_ENCONTRADO", "XML nao encontrado no zip");
-            finalizeImportacao(importacao, item, true);
-            failureCounter.increment();
+            Optional<FiscalDocumentRegistry> existing = registryRepository
+                    .findByTenantIdAndEmpresaIdAndAccessKey(importacao.getTenantId(), importacao.getEmpresaId(), parsed.accessKey());
 
+            if (existing.isPresent()) {
+                item.setStatus(ImportItemStatus.DUPLICADO);
+                importItemRepository.save(item);
+                duplicateCounter.increment();
+                finalizeImportacao(importacao, item, false);
+                log.info("import.parse.duplicate importacaoId={} importItemId={} correlationId={} accessKey={}",
+                        importacao.getId(), item.getId(), correlationId, parsed.accessKey());
+                return;
+            }
+
+            FiscalDocument doc = new FiscalDocument();
+            doc.setTenantId(importacao.getTenantId());
+            doc.setEmpresaId(importacao.getEmpresaId());
+            doc.setModel(parsed.model());
+            doc.setAccessKey(parsed.accessKey());
+            doc.setIssueDate(parsed.issueDate());
+            doc.setIssueDateTime(parsed.issueDateTime());
+            doc.setOperationType(parsed.operationType());
+            doc.setEmitCnpj(parsed.emitCnpj());
+            doc.setDestCnpj(parsed.destCnpj());
+            doc.setTotalProducts(parsed.totalProducts());
+            doc.setTotalAmount(parsed.totalAmount());
+            doc.setTotalIcms(parsed.totalIcms());
+            doc.setTotalPis(parsed.totalPis());
+            doc.setTotalCofins(parsed.totalCofins());
+            doc.setImportacao(importacao);
+            doc.setXmlPath(resolveXmlPath(item, payload.xmlPath()));
+            doc.setXmlHash(xmlHash);
+
+            FiscalDocument savedDoc = fiscalDocumentRepository.save(doc);
+
+            try {
+                FiscalDocumentRegistry registry = new FiscalDocumentRegistry();
+                registry.setTenantId(importacao.getTenantId());
+                registry.setEmpresaId(importacao.getEmpresaId());
+                registry.setAccessKey(parsed.accessKey());
+                registry.setFiscalDocument(savedDoc);
+                registryRepository.save(registry);
+
+                if (!parsed.items().isEmpty()) {
+                    java.util.List<FiscalItem> items = new java.util.ArrayList<>();
+                    for (ParsedNfeItem parsedItem : parsed.items()) {
+                        items.add(toFiscalItem(savedDoc, parsedItem));
+                    }
+                    fiscalItemRepository.saveAll(items);
+                }
+
+                item.setStatus(ImportItemStatus.PARSEADO);
+                importItemRepository.save(item);
+                successCounter.increment();
+                finalizeImportacao(importacao, item, false);
+
+                log.info("import.parse.success importacaoId={} importItemId={} correlationId={} accessKey={}",
+                        importacao.getId(), item.getId(), correlationId, parsed.accessKey());
+                return;
+            } catch (DataIntegrityViolationException ex) {
+                item.setStatus(ImportItemStatus.DUPLICADO);
+                importItemRepository.save(item);
+                duplicateCounter.increment();
+                finalizeImportacao(importacao, item, false);
+
+                log.info("import.parse.duplicate_race importacaoId={} importItemId={} correlationId={} accessKey={}",
+                        importacao.getId(), item.getId(), correlationId, parsed.accessKey());
+                return;
+            }
         } catch (ValidationException e) {
             failItem(item, "FALHA_PARSE", e.getMessage());
             finalizeImportacao(importacao, item, true);
             failureCounter.increment();
+        } catch (InfraException e) {
+            throw e;
         } catch (Exception e) {
             throw new InfraException("Falha ao ler ZIP/XML", e);
         } finally {
@@ -219,6 +208,54 @@ public class ParseXmlService {
         item.setErroCodigo(code);
         item.setErroMensagem(message);
         importItemRepository.save(item);
+    }
+
+    private ParsedPayload parsePayload(ParseXmlMessage message, ImportItem item) {
+        if (StringUtils.hasText(message.zipEntryName())) {
+            return parseZipEntry(message.objectKeyZip(), message.zipEntryName());
+        }
+        String objectKey = StringUtils.hasText(item.getStorageObjectKey())
+                ? item.getStorageObjectKey()
+                : message.objectKeyZip();
+        if (!StringUtils.hasText(objectKey)) {
+            throw new ValidationException("storage_object_key ausente");
+        }
+        return parseDirectObject(objectKey);
+    }
+
+    private ParsedPayload parseZipEntry(String zipObjectKey, String zipEntryName) {
+        try (InputStream zipStream = storageService.get(zipObjectKey);
+             ZipInputStream zis = new ZipInputStream(zipStream)) {
+            ZipEntry entry;
+            while ((entry = zis.getNextEntry()) != null) {
+                if (entry.isDirectory()) continue;
+                if (!entry.getName().equals(zipEntryName)) continue;
+                return parseXmlStream(zis, zipEntryName);
+            }
+            throw new ValidationException("XML nao encontrado no zip");
+        } catch (ValidationException e) {
+            throw e;
+        } catch (Exception e) {
+            throw new InfraException("Falha ao ler ZIP/XML", e);
+        }
+    }
+
+    private ParsedPayload parseDirectObject(String objectKey) {
+        try (InputStream xmlStream = storageService.get(objectKey)) {
+            return parseXmlStream(xmlStream, objectKey);
+        } catch (ValidationException e) {
+            throw e;
+        } catch (Exception e) {
+            throw new InfraException("Falha ao ler XML do storage", e);
+        }
+    }
+
+    private ParsedPayload parseXmlStream(InputStream inputStream, String xmlPath) throws Exception {
+        MessageDigest digest = MessageDigest.getInstance("SHA-256");
+        DigestInputStream dis = new DigestInputStream(inputStream, digest);
+        ParsedNfe parsed = nfeXmlParser.parse(dis);
+        String xmlHash = bytesToHex(digest.digest());
+        return new ParsedPayload(parsed, xmlHash, xmlPath);
     }
 
     private void finalizeImportacao(Importacao importacao, ImportItem item, boolean error) {
@@ -266,4 +303,12 @@ public class ParseXmlService {
         item.setCofinsValue(parsed.cofinsValue());
         return item;
     }
+
+    private String resolveXmlPath(ImportItem item, String parsedPath) {
+        if (StringUtils.hasText(item.getXmlPath())) return item.getXmlPath();
+        if (StringUtils.hasText(item.getStorageObjectKey())) return item.getStorageObjectKey();
+        return parsedPath;
+    }
+
+    private record ParsedPayload(ParsedNfe parsed, String xmlHash, String xmlPath) {}
 }

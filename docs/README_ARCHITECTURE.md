@@ -12,6 +12,10 @@ O FiscalAnalyzer é uma aplicação backend desenvolvida em **Java 21 + Spring B
 projetada para ingestão e análise de grandes volumes de documentos fiscais
 (NF-e modelo 55 e NFC-e modelo 65).
 
+O sistema suporta dois modos de entrada:
+- upload via API (ZIP)
+- ingestão em alto volume via **agente/desktop + storage + manifesto**
+
 A arquitetura é orientada a:
 - processamento assíncrono
 - alto volume de dados
@@ -28,6 +32,7 @@ O sistema é **container-first**, executado via Docker em ambientes locais e pro
 Responsável por:
 - receber uploads de arquivos `.zip`
 - registrar importações
+- registrar lotes por manifesto (alto volume)
 - expor endpoints de consulta e monitoramento
 - nunca processar XML diretamente
 
@@ -94,6 +99,7 @@ Estratégias:
 - particionamento por data (`issue_date`)
 - índices focados em análise fiscal
 - idempotência por chave da nota
+- diferenciação de origem por `importacao.source_type` (`ZIP`/`MANIFEST`)
 
 ---
 
@@ -104,7 +110,21 @@ Arquivos originais são mantidos para:
 - rastreabilidade
 
 Tecnologia:
-- MinIO (compatível com S3)
+- MinIO/S3 (compatível com provedores S3, ex.: Backblaze B2)
+
+---
+
+### 2.7 Agente de Ingestão (alto volume)
+Responsável por:
+- ler arquivos XML no ambiente do cliente
+- enviar XMLs para storage com upload concorrente e retomável
+- gerar manifesto (`object_key`, hash, tamanho, tenant/empresa)
+- solicitar criação de lote para processamento assíncrono
+
+Características:
+- não parseia regra fiscal
+- não persiste no banco do domínio
+- não publica direto no RabbitMQ (sempre via API do backend)
 
 ---
 
@@ -144,6 +164,17 @@ Quando todos os itens de uma importação são processados:
 - a importação é marcada como concluída
 - erros ficam disponíveis para análise
 - relatórios podem ser gerados
+
+---
+
+### 3.5 Fluxo de alto volume (agente + manifesto)
+1. Agente envia XMLs para storage (chaves determinísticas)
+2. Agente gera manifesto do lote
+3. API registra importação a partir do manifesto
+4. `import_item` é criado em batch e mensagens de parse são enfileiradas
+5. Worker de parsing lê **XML direto no storage** (sem releitura de ZIP)
+6. Documento/itens são persistidos com idempotência por chave fiscal
+7. Lote é finalizado quando não restarem itens pendentes
 
 ---
 
@@ -188,6 +219,23 @@ Cada pacote possui responsabilidade única e clara.
 - Cada XML possui status individual
 - Mensagens de erro são registradas no `import_item`
 
+### 5.4 Fluxo de DLQ (retry esgotado)
+
+```
+Consumer principal → retry exponencial (até 5x, máx 30s) → QueueRetryRecoverer
+    → AmqpRejectAndDontRequeueException → RabbitMQ move para DLQ
+    → DLQ Consumer (sem retry) → DlqHandlerService
+        ├── Parse DLQ  → import_item.status = FALHA_PERMANENTE
+        └── Extract DLQ → importacao.status = FALHA
+```
+
+Status `FALHA_PERMANENTE` é terminal — não será reprocessado automaticamente.
+Itens nesse status não bloqueiam a finalização da `importacao`.
+
+Métricas associadas:
+- `queue.retry{queue=...}` — incrementado a cada tentativa
+- `queue.dlq{queue=...}` — incrementado quando mensagem vai para DLQ
+
 ---
 
 ## 6. Escalabilidade e futuro
@@ -197,6 +245,7 @@ A arquitetura foi desenhada para permitir:
 - inclusão futura de SPED
 - inclusão de novos modelos fiscais
 - separação em microserviços, se necessário
+- ingestão contínua de milhões de XML via agente local
 
 Nenhuma decisão atual bloqueia essas evoluções.
 
@@ -208,15 +257,44 @@ Nenhuma decisão atual bloqueia essas evoluções.
 - Não carregar XML inteiro em memória
 - Não misturar regra fiscal com persistência
 - Não persistir resultado fiscal na tabela de fatos
+- Não enviar payload de XML em mensagens RabbitMQ
+- Não depender de varredura massiva (`ListObjects`) para descobrir arquivos; usar manifesto
 
 ---
 
-## 8. Como usar este documento com IA (Codex)
+## 8. Roadmap por fases (status atual)
+
+Objetivo desta seção: deixar explícito em que etapa do produto estamos, para manter continuidade quando o contexto for compactado.
+
+Fases:
+- Fase 0 — Infra base (Docker + Flyway + `ddl-auto=validate`) — **CONCLUÍDA**
+- Fase 1 — Upload + Storage + publicação de `ExtractZipMessage` — **CONCLUÍDA**
+- Fase 2 — Worker de extração (ZIP streaming, `import_item`, idempotência) — **CONCLUÍDA**
+- Fase 3 — Worker de parsing (streaming XML, `fiscal_document`, registry, AFTER_COMMIT) — **CONCLUÍDA**
+- Fase 4 — Read Model e endpoints de consulta (`/imports`, `/imports/{id}/items`, `/documents/{accessKey}`) — **CONCLUÍDA**
+- Fase 5 — Hardening para alto volume (1M+ XML): ingestão por agente/manifests, tuning de concorrência, custo/throughput e operação — **EM ANDAMENTO**
+
+Status atual:
+- Estamos na **Fase 5**.
+- Não avançar para novas funcionalidades fiscais antes de estabilizar throughput, retry/DLQ, idempotência e observabilidade do pipeline.
+- Baseline local já medido no pipeline atual (arquivo com 50 XML): ver `INGESTION_HIGH_VOLUME.md`.
+- Tuning inicial de concorrência/prefetch do Rabbit já aplicado; manter ajustes guiados por medição.
+- DLQ consumers implementados (`ParseDlqConsumer`, `ExtractDlqConsumer`) via `DlqHandlerService`.
+- Agente de ingestão (C#) documentado em `AGENT_ARCHITECTURE.md` — implementação pendente.
+- Endpoint `POST /imports/manifest` implementado (cria `importacao` MANIFEST + `import_item` em batch e publica parse AFTER_COMMIT).
+- Worker de parse suporta dois modos: ZIP (`zipEntryName`) e XML direto no storage (`storage_object_key`).
+
+---
+
+## 9. Como usar este documento com IA (Codex)
 
 Antes de implementar qualquer código:
 1. Ler este arquivo (`README_ARCHITECTURE.md`)
 2. Ler o `DOMAIN.md`
-3. Implementar apenas o escopo solicitado
-4. Respeitar responsabilidades dos pacotes
+3. Se houver impacto no agente, ler/atualizar `AGENT_INTEGRATION_CONTRACT.md`
+4. Implementar apenas o escopo solicitado
+5. Respeitar responsabilidades dos pacotes
+6. Para chamadas manuais de API, usar `FiscalAnalyzer.routes.http`
+7. Para deploy em Dockploy, seguir `DEPLOY_DOCKPLOY.md`
 
 Isso garante consistência e evita código fora do padrão arquitetural.

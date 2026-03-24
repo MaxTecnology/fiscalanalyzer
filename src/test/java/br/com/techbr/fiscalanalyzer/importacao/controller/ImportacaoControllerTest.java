@@ -1,12 +1,16 @@
 package br.com.techbr.fiscalanalyzer.importacao.controller;
 
 import br.com.techbr.fiscalanalyzer.common.exception.ApiExceptionHandler;
+import br.com.techbr.fiscalanalyzer.common.exception.UnprocessableEntityException;
 import br.com.techbr.fiscalanalyzer.common.exception.ValidationException;
+import br.com.techbr.fiscalanalyzer.importacao.dto.ManifestRequest;
 import br.com.techbr.fiscalanalyzer.importacao.model.Importacao;
+import br.com.techbr.fiscalanalyzer.importacao.model.ImportacaoSourceType;
 import br.com.techbr.fiscalanalyzer.importacao.model.ImportacaoStatus;
 import br.com.techbr.fiscalanalyzer.importacao.service.ImportacaoService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.springframework.http.MediaType;
 import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.test.web.servlet.MockMvc;
@@ -16,6 +20,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -76,5 +81,64 @@ class ImportacaoControllerTest {
                         .param("empresaId", "2"))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.code").value("VALIDATION_ERROR"));
+    }
+
+    @Test
+    void manifest_retorna202() throws Exception {
+        Importacao imp = new Importacao();
+        ReflectionTestUtils.setField(imp, "id", 42L);
+        imp.setStatus(ImportacaoStatus.RECEBIDO);
+        imp.setSourceType(ImportacaoSourceType.MANIFEST);
+        imp.setTotalEncontrado(1);
+
+        when(importacaoService.criarImportacaoPorManifesto(any(ManifestRequest.class))).thenReturn(imp);
+
+        String body = """
+                {
+                  "tenantId": 1,
+                  "empresaId": 2,
+                  "entries": [
+                    {
+                      "objectKey": "1/2/a.xml",
+                      "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+                      "sizeBytes": 123,
+                      "originalFileName": "a.xml"
+                    }
+                  ]
+                }
+                """;
+
+        mockMvc.perform(post("/imports/manifest")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(body))
+                .andExpect(status().isAccepted())
+                .andExpect(jsonPath("$.importacaoId").value(42))
+                .andExpect(jsonPath("$.status").value("RECEBIDO"))
+                .andExpect(jsonPath("$.totalItems").value(1));
+    }
+
+    @Test
+    void manifest_retorna422_quandoObjectKeyNaoExiste() throws Exception {
+        when(importacaoService.criarImportacaoPorManifesto(any(ManifestRequest.class)))
+                .thenThrow(new UnprocessableEntityException("objectKey nao encontrado no storage: 1/2/a.xml"));
+
+        String body = """
+                {
+                  "tenantId": 1,
+                  "empresaId": 2,
+                  "entries": [
+                    {
+                      "objectKey": "1/2/a.xml",
+                      "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+                    }
+                  ]
+                }
+                """;
+
+        mockMvc.perform(post("/imports/manifest")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(body))
+                .andExpect(status().isUnprocessableEntity())
+                .andExpect(jsonPath("$.code").value("UNPROCESSABLE_ENTITY"));
     }
 }

@@ -13,6 +13,7 @@
 ## Convenções de tipos
 - access_key: VARCHAR(44)
 - CNPJ: CHAR(14)
+- source_type (importacao): VARCHAR(20) (`ZIP` ou `MANIFEST`)
 - Datas fiscais:
     - issue_date: DATE (particionamento)
     - issue_datetime: TIMESTAMPTZ
@@ -32,3 +33,17 @@
 - Qualquer nova coluna/tabela deve:
     - ser criada via migration
     - refletir corretamente nos Entities JPA
+
+## Manifesto (base de schema)
+- `importacao.source_type` identifica origem do lote:
+    - `ZIP` (fluxo legado de upload)
+    - `MANIFEST` (fluxo de alto volume)
+- `import_item.storage_object_key` armazena a chave do XML no storage para parse direto
+  (quando o fluxo não depende de ZIP).
+
+## Operação em alto volume
+- `import_item` deve ser escrito e atualizado em lote sempre que possível.
+- Evitar scans de status por item em loops críticos; preferir agregação/counters.
+- Se houver ingestão por manifesto, o manifesto é a fonte para criação de `import_item`.
+- Para reduzir custo de storage, persistir no banco os metadados necessários para reprocesso
+  sem depender de `LIST` massivo no bucket.

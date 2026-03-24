@@ -8,5 +8,6 @@ public enum ImportItemStatus {
     DUPLICADO,
     FALHA_PARSE,
     CONCLUIDO,
-    ERRO
+    ERRO,
+    FALHA_PERMANENTE
 }

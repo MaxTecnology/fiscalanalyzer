@@ -2,12 +2,11 @@ services:
   postgres:
     image: postgres:16
     container_name: fiscalanalyzer-postgres
+    restart: unless-stopped
     environment:
       POSTGRES_DB: ${POSTGRES_DB:-fiscalanalyzer}
       POSTGRES_USER: ${POSTGRES_USER:-fiscalanalyzer}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-fiscalanalyzer}
-    ports:
-      - "5432:5432"
     volumes:
       - fiscalanalyzer_pgdata:/var/lib/postgresql/data
     healthcheck:
@@ -19,12 +18,12 @@ services:
   rabbitmq:
     image: rabbitmq:3-management
     container_name: fiscalanalyzer-rabbitmq
+    restart: unless-stopped
     environment:
       RABBITMQ_DEFAULT_USER: ${RABBITMQ_USER:-fiscalanalyzer}
       RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASSWORD:-fiscalanalyzer}
-    ports:
-      - "5672:5672"
-      - "15672:15672"
+    volumes:
+      - fiscalanalyzer_rabbitmq_data:/var/lib/rabbitmq
     healthcheck:
       test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
       interval: 5s
@@ -36,6 +35,7 @@ services:
       context: ..
       dockerfile: Dockerfile
     container_name: fiscalanalyzer-app
+    restart: unless-stopped
     environment:
       SPRING_PROFILES_ACTIVE: docker
       DB_URL: jdbc:postgresql://postgres:5432/${POSTGRES_DB:-fiscalanalyzer}
@@ -61,3 +61,4 @@ services:
 
 volumes:
   fiscalanalyzer_pgdata:
+  fiscalanalyzer_rabbitmq_data:

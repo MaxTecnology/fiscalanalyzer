@@ -38,6 +38,13 @@ public class ApiExceptionHandler {
                 .body(new ErrorResponse("INFRA_ERROR", ex.getMessage()));
     }
 
+    @ExceptionHandler(UnprocessableEntityException.class)
+    public ResponseEntity<ErrorResponse> handleUnprocessable(UnprocessableEntityException ex) {
+        log.warn("api.unprocessable.error message={}", ex.getMessage());
+        return ResponseEntity.status(HttpStatus.UNPROCESSABLE_ENTITY)
+                .body(new ErrorResponse("UNPROCESSABLE_ENTITY", ex.getMessage()));
+    }
+
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ErrorResponse> handleUnexpected(Exception ex) {
         log.error("api.unexpected.error message={}", ex.getMessage(), ex);

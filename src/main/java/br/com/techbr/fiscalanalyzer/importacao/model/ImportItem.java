@@ -24,6 +24,9 @@ public class ImportItem {
     @Column(name = "xml_size")
     private Long xmlSize;
 
+    @Column(name = "storage_object_key", columnDefinition = "text")
+    private String storageObjectKey;
+
     @Column(name = "model")
     private Short model;
 
@@ -70,6 +73,8 @@ public class ImportItem {
     public void setXmlHash(String xmlHash) { this.xmlHash = xmlHash; }
     public Long getXmlSize() { return xmlSize; }
     public void setXmlSize(Long xmlSize) { this.xmlSize = xmlSize; }
+    public String getStorageObjectKey() { return storageObjectKey; }
+    public void setStorageObjectKey(String storageObjectKey) { this.storageObjectKey = storageObjectKey; }
     public Short getModel() { return model; }
     public void setModel(Short model) { this.model = model; }
     public String getAccessKey() { return accessKey; }

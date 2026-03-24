@@ -29,7 +29,7 @@ public class ParseXmlProducer {
             m.getMessageProperties().setCorrelationId(correlationId);
             return m;
         });
-        log.info("queue.parse.sent importacaoId={} importItemId={} correlationId={} entry={}",
-                message.importacaoId(), message.importItemId(), correlationId, message.zipEntryName());
+        log.info("queue.parse.sent importacaoId={} importItemId={} correlationId={} objectKey={} entry={}",
+                message.importacaoId(), message.importItemId(), correlationId, message.objectKeyZip(), message.zipEntryName());
     }
 }
