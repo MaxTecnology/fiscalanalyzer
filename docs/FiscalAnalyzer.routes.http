@@ -1,14 +1,18 @@
 ### FiscalAnalyzer - HTTP Routes
 ### Use com IntelliJ HTTP Client ou extensão REST Client (VS Code)
-### Pré-requisito: API local rodando (ex.: ./scripts/run-local.sh)
+### Pré-requisito: API acessível (homolog/prod/local)
+### Observação: hoje NÃO existe endpoint para criar tenant/empresa.
+###             Use tenantId/empresaId já provisionados no banco/painel.
 
-@baseUrl = http://localhost:8080
+@baseUrl = https://api.fiscalanalyzer.techbrsolucoes.com.br
+@baseUrlLocal = http://localhost:8080
 @tenantId = 99
 @empresaId = 99
 @importacaoId = 1
 @accessKey = 35191111111111111111550010000000011000000010
-@agentApiKey = fa_live_xxxxxxxxxxxxxxxxxxxxxxxx
-@adminToken = REPLACE_WITH_APP_SECURITY_ADMIN_TOKEN
+@agentApiKey = fa_live_mZ2rerxKwrL8wzJ8w_t8r3hC9CvMvDsYzzW229eMjgQ
+@adminToken = m_HldoUtIiuIeUYOk4_-LowU3-tm2r95_mLhTIoiXd5LxYAqgBH-UBwHbJOiWGnp
+@agentId = desktop-agent-01
 @empresaAdminId = 99
 @agentKeyId = 1
 
@@ -51,7 +55,7 @@ Content-Type: application/json
   "empresaId": {{empresaId}},
   "entries": [
     {
-      "objectKey": "99/99/9f81409800c24998f96a4f8e2e1bab1dfe93144563fcb2c3b946b5461ad15869.xml",
+      "objectKey": "{{tenantId}}/{{empresaId}}/9f81409800c24998f96a4f8e2e1bab1dfe93144563fcb2c3b946b5461ad15869.xml",
       "sha256": "9f81409800c24998f96a4f8e2e1bab1dfe93144563fcb2c3b946b5461ad15869",
       "sizeBytes": 1500,
       "originalFileName": "nfe-001.xml"
@@ -70,7 +74,7 @@ Content-Type: application/json
   "empresaId": {{empresaId}},
   "entries": [
     {
-      "objectKey": "99/99/nfe-001.xml",
+      "objectKey": "{{tenantId}}/{{empresaId}}/nfe-001.xml",
       "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
       "sizeBytes": 14320,
       "originalFileName": "nfe-001.xml"
@@ -105,7 +109,7 @@ Content-Type: application/json
   "empresaId": {{empresaId}},
   "entries": [
     {
-      "objectKey": "99/99/nao-existe.xml",
+      "objectKey": "{{tenantId}}/{{empresaId}}/nao-existe.xml",
       "sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
     }
   ]
@@ -120,7 +124,7 @@ Content-Type: application/json
 ### Agent Session
 POST {{baseUrl}}/agent/session
 Authorization: Bearer {{agentApiKey}}
-X-Agent-Id: desktop-agent-01
+X-Agent-Id: {{agentId}}
 Content-Type: application/json
 
 {}
@@ -137,7 +141,7 @@ Content-Type: application/json
 ### Agent Upload URL
 POST {{baseUrl}}/agent/upload-url
 Authorization: Bearer {{agentApiKey}}
-X-Agent-Id: desktop-agent-01
+X-Agent-Id: {{agentId}}
 Content-Type: application/json
 
 {
@@ -174,7 +178,7 @@ Content-Type: application/json
 ### Manifest autenticado (contrato do agente)
 POST {{baseUrl}}/imports/manifest
 Authorization: Bearer {{agentApiKey}}
-X-Agent-Id: desktop-agent-01
+X-Agent-Id: {{agentId}}
 Content-Type: application/json
 
 {
@@ -182,7 +186,7 @@ Content-Type: application/json
   "empresaId": {{empresaId}},
   "entries": [
     {
-      "objectKey": "99/99/9f81409800c24998f96a4f8e2e1bab1dfe93144563fcb2c3b946b5461ad15869.xml",
+      "objectKey": "{{tenantId}}/{{empresaId}}/9f81409800c24998f96a4f8e2e1bab1dfe93144563fcb2c3b946b5461ad15869.xml",
       "sha256": "9f81409800c24998f96a4f8e2e1bab1dfe93144563fcb2c3b946b5461ad15869",
       "sizeBytes": 1500,
       "originalFileName": "nfe-001.xml"
@@ -192,7 +196,7 @@ Content-Type: application/json
 
 ###
 ### Admin - criar Agent API Key (requer X-Admin-Token)
-POST {{baseUrl}}/admin/empresas/{{empresaAdminId}}/agent-keys
+POST {{baseUrl}}/admin/empresas/{{empresaAdminId}}/agent-keys?tenantId={{tenantId}}
 X-Admin-Token: {{adminToken}}
 Content-Type: application/json
 
@@ -202,12 +206,12 @@ Content-Type: application/json
 
 ###
 ### Admin - listar Agent API Keys (requer X-Admin-Token)
-GET {{baseUrl}}/admin/empresas/{{empresaAdminId}}/agent-keys
+GET {{baseUrl}}/admin/empresas/{{empresaAdminId}}/agent-keys?tenantId={{tenantId}}
 X-Admin-Token: {{adminToken}}
 
 ###
 ### Admin - revogar Agent API Key (requer X-Admin-Token)
-DELETE {{baseUrl}}/admin/empresas/{{empresaAdminId}}/agent-keys/{{agentKeyId}}
+DELETE {{baseUrl}}/admin/empresas/{{empresaAdminId}}/agent-keys/{{agentKeyId}}?tenantId={{tenantId}}
 X-Admin-Token: {{adminToken}}
 
 ###
