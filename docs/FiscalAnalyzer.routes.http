@@ -13,14 +13,14 @@
 @agentId = desktop-agent-01
 @empresaAdminId = 99
 @agentKeyId = 1
-@tenantNome = Tenant Homologacao
+@tenantNome = TechBr Soluções
 @empresaCnpj = 12345678000199
-@empresaRazaoSocial = Empresa Homologacao LTDA
+@empresaRazaoSocial = TechBr Soluções LTDA
 @userId = 1
 @userEmail = operador.hml@empresa.com
 @userPassword = SenhaForte123
 @userJwt = colar_jwt_login_aqui
-@bootstrapToken = 5be700a619329357ebb05c3a54e410d647d6a7017207ebc5d8449d6c362ca15e
+@bootstrapToken = aca1aba00a82818f673b6de1f70ae7dce42294b19c36c368ab9712307d60a1ba
 
 ###
 ### Health
