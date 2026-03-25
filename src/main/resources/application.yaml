@@ -15,6 +15,42 @@ spring:
 app:
   importacao:
     max-zip-size: 200MB
+  security:
+    admin-token: ${APP_SECURITY_ADMIN_TOKEN:}
+    auth-audit:
+      mode: ${APP_SECURITY_AUTH_AUDIT_MODE:failures}
+    audit-cleanup:
+      enabled: ${APP_SECURITY_AUDIT_CLEANUP_ENABLED:true}
+      cron: ${APP_SECURITY_AUDIT_CLEANUP_CRON:0 30 3 * * *}
+      auth-retention-days: ${APP_SECURITY_AUDIT_CLEANUP_AUTH_RETENTION_DAYS:90}
+      upload-retention-days: ${APP_SECURITY_AUDIT_CLEANUP_UPLOAD_RETENTION_DAYS:30}
+      batch-size: ${APP_SECURITY_AUDIT_CLEANUP_BATCH_SIZE:5000}
+      max-batches: ${APP_SECURITY_AUDIT_CLEANUP_MAX_BATCHES:100}
+    rate-limit:
+      enabled: ${APP_SECURITY_RATE_LIMIT_ENABLED:true}
+      backend: ${APP_SECURITY_RATE_LIMIT_BACKEND:in-memory}
+      redis-key-prefix: ${APP_SECURITY_RATE_LIMIT_REDIS_KEY_PREFIX:fiscalanalyzer:security:}
+      redis-token-bucket-ttl-seconds: ${APP_SECURITY_RATE_LIMIT_REDIS_TOKEN_BUCKET_TTL_SECONDS:600}
+      agent:
+        session:
+          rps: ${APP_SECURITY_RATE_LIMIT_AGENT_SESSION_RPS:1}
+          burst: ${APP_SECURITY_RATE_LIMIT_AGENT_SESSION_BURST:5}
+        upload-url:
+          rps: ${APP_SECURITY_RATE_LIMIT_AGENT_UPLOAD_URL_RPS:20}
+          burst: ${APP_SECURITY_RATE_LIMIT_AGENT_UPLOAD_URL_BURST:200}
+        manifest:
+          rps: ${APP_SECURITY_RATE_LIMIT_AGENT_MANIFEST_RPS:5}
+          burst: ${APP_SECURITY_RATE_LIMIT_AGENT_MANIFEST_BURST:20}
+        default:
+          rps: ${APP_SECURITY_RATE_LIMIT_AGENT_DEFAULT_RPS:10}
+          burst: ${APP_SECURITY_RATE_LIMIT_AGENT_DEFAULT_BURST:50}
+      anonymous:
+        rps: ${APP_SECURITY_RATE_LIMIT_ANONYMOUS_RPS:2}
+        burst: ${APP_SECURITY_RATE_LIMIT_ANONYMOUS_BURST:10}
+      auth-failure:
+        threshold: ${APP_SECURITY_RATE_LIMIT_AUTH_FAILURE_THRESHOLD:20}
+        window-seconds: ${APP_SECURITY_RATE_LIMIT_AUTH_FAILURE_WINDOW_SECONDS:300}
+        lockout-seconds: ${APP_SECURITY_RATE_LIMIT_AUTH_FAILURE_LOCKOUT_SECONDS:600}
   queue:
     exchange: import.exchange
     dlx: import.dlx

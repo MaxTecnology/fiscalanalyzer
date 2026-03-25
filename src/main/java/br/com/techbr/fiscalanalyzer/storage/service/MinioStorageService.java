@@ -2,6 +2,7 @@ package br.com.techbr.fiscalanalyzer.storage.service;
 
 import io.minio.*;
 import io.minio.errors.ErrorResponseException;
+import io.minio.http.Method;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
@@ -64,6 +65,24 @@ public class MinioStorageService implements StorageService {
             return false;
         } catch (Exception e) {
             throw new RuntimeException("Failed to stat object: " + key, e);
+        }
+    }
+
+    @Override
+    public String generatePresignedPutUrl(String key, int expiresSeconds, String contentType) {
+        try {
+            ensureBucket();
+            int ttl = Math.max(1, Math.min(expiresSeconds, 7 * 24 * 60 * 60));
+            return minioClient.getPresignedObjectUrl(
+                    GetPresignedObjectUrlArgs.builder()
+                            .method(Method.PUT)
+                            .bucket(bucket)
+                            .object(key)
+                            .expiry(ttl)
+                            .build()
+            );
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to generate presigned URL: " + key, e);
         }
     }
 

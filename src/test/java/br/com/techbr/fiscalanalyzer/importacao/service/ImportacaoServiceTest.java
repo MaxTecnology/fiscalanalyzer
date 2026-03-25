@@ -151,7 +151,7 @@ class ImportacaoServiceTest {
             return item;
         });
 
-        Importacao result = service.criarImportacaoPorManifesto(request);
+        Importacao result = service.criarImportacaoPorManifesto(request, 99L, 99L);
 
         assertEquals(42L, result.getId());
         assertEquals(ImportacaoSourceType.MANIFEST, result.getSourceType());
@@ -183,7 +183,24 @@ class ImportacaoServiceTest {
 
         when(storageService.exists("99/99/a.xml")).thenReturn(false);
 
-        assertThrows(UnprocessableEntityException.class, () -> service.criarImportacaoPorManifesto(request));
+        assertThrows(UnprocessableEntityException.class, () -> service.criarImportacaoPorManifesto(request, 99L, 99L));
+    }
+
+    @Test
+    void criarImportacaoPorManifesto_rejeitaTenantEmpresaDiferentesDaApiKey() {
+        ManifestRequest request = new ManifestRequest(
+                99L,
+                99L,
+                java.util.List.of(new ManifestEntryRequest(
+                        "99/99/a.xml",
+                        "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+                        100L,
+                        "a.xml"
+                ))
+        );
+
+        assertThrows(br.com.techbr.fiscalanalyzer.common.exception.ForbiddenException.class,
+                () -> service.criarImportacaoPorManifesto(request, 1L, 2L));
     }
 
     private String sha256Hex(String value) throws Exception {

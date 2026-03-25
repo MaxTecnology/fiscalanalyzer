@@ -3,6 +3,8 @@ package br.com.techbr.fiscalanalyzer.importacao.controller;
 import br.com.techbr.fiscalanalyzer.common.exception.ApiExceptionHandler;
 import br.com.techbr.fiscalanalyzer.common.exception.UnprocessableEntityException;
 import br.com.techbr.fiscalanalyzer.common.exception.ValidationException;
+import br.com.techbr.fiscalanalyzer.agent.security.AgentAuthContext;
+import br.com.techbr.fiscalanalyzer.agent.security.AgentAuthRequestContext;
 import br.com.techbr.fiscalanalyzer.importacao.dto.ManifestRequest;
 import br.com.techbr.fiscalanalyzer.importacao.model.Importacao;
 import br.com.techbr.fiscalanalyzer.importacao.model.ImportacaoSourceType;
@@ -17,6 +19,7 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -91,7 +94,7 @@ class ImportacaoControllerTest {
         imp.setSourceType(ImportacaoSourceType.MANIFEST);
         imp.setTotalEncontrado(1);
 
-        when(importacaoService.criarImportacaoPorManifesto(any(ManifestRequest.class))).thenReturn(imp);
+        when(importacaoService.criarImportacaoPorManifesto(any(ManifestRequest.class), anyLong(), anyLong())).thenReturn(imp);
 
         String body = """
                 {
@@ -109,6 +112,7 @@ class ImportacaoControllerTest {
                 """;
 
         mockMvc.perform(post("/imports/manifest")
+                        .requestAttr(AgentAuthRequestContext.REQUEST_ATTRIBUTE, new AgentAuthContext(1L, 1L, 2L, "fa_live_abcd"))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(body))
                 .andExpect(status().isAccepted())
@@ -119,7 +123,7 @@ class ImportacaoControllerTest {
 
     @Test
     void manifest_retorna422_quandoObjectKeyNaoExiste() throws Exception {
-        when(importacaoService.criarImportacaoPorManifesto(any(ManifestRequest.class)))
+        when(importacaoService.criarImportacaoPorManifesto(any(ManifestRequest.class), anyLong(), anyLong()))
                 .thenThrow(new UnprocessableEntityException("objectKey nao encontrado no storage: 1/2/a.xml"));
 
         String body = """
@@ -136,6 +140,7 @@ class ImportacaoControllerTest {
                 """;
 
         mockMvc.perform(post("/imports/manifest")
+                        .requestAttr(AgentAuthRequestContext.REQUEST_ATTRIBUTE, new AgentAuthContext(1L, 1L, 2L, "fa_live_abcd"))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(body))
                 .andExpect(status().isUnprocessableEntity())

@@ -1,5 +1,6 @@
 package br.com.techbr.fiscalanalyzer.importacao.service;
 
+import br.com.techbr.fiscalanalyzer.common.exception.ForbiddenException;
 import br.com.techbr.fiscalanalyzer.common.exception.InfraException;
 import br.com.techbr.fiscalanalyzer.common.exception.UnprocessableEntityException;
 import br.com.techbr.fiscalanalyzer.common.exception.ValidationException;
@@ -134,12 +135,18 @@ public class ImportacaoService {
     }
 
     @Transactional
-    public Importacao criarImportacaoPorManifesto(ManifestRequest request) {
+    public Importacao criarImportacaoPorManifesto(ManifestRequest request, Long authTenantId, Long authEmpresaId) {
         if (request == null) {
             throw new ValidationException("Manifesto obrigatorio");
         }
         if (request.tenantId() == null || request.empresaId() == null) {
             throw new ValidationException("tenantId e empresaId sao obrigatorios");
+        }
+        if (authTenantId == null || authEmpresaId == null) {
+            throw new ValidationException("Contexto de autenticacao do agente ausente");
+        }
+        if (!request.tenantId().equals(authTenantId) || !request.empresaId().equals(authEmpresaId)) {
+            throw new ForbiddenException("tenantId/empresaId do manifesto nao conferem com a ApiKey");
         }
 
         List<ManifestEntryRequest> entries = normalizeManifestEntries(request.entries());

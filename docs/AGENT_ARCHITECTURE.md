@@ -77,18 +77,12 @@ FiscalAnalyzer.Agent/
 ```json
 {
   "Agent": {
-    "TenantId": 1,
-    "EmpresaId": 10,
     "WatchDirectory": "C:\\NFe\\XMLs",
     "ScanIntervalSeconds": 60,
     "MaxUploadConcurrency": 4,
     "BackendBaseUrl": "https://fiscalanalyzer.interno/",
-    "Storage": {
-      "Endpoint": "https://s3.backblazeb2.com",
-      "Bucket": "fiscalanalyzer-xmls",
-      "AccessKey": "...",
-      "SecretKey": "..."
-    }
+    "AgentId": "cliente-a-host-01",
+    "ApiKey": "fa_live_xxxxxxxxxxxxxxxxxxxxxxxx"
   }
 }
 ```
@@ -104,8 +98,10 @@ FiscalAnalyzer.Agent/
 2. Para cada arquivo:
    a. Calcula SHA-256 em streaming
    b. Verifica UploadStateStore — se já enviado com mesmo hash, ignora
-   c. Faz upload para storage: bucket/{tenantId}/{empresaId}/{sha256}.xml
-      (chave determinística por hash — idempotente)
+   c. Chama POST /agent/upload-url (Bearer ApiKey)
+   d. Recebe { uploadUrl, objectKey, expiresIn }
+   e. Faz PUT no uploadUrl com content-type application/xml
+      (chave determinística por hash — idempotente no backend)
    d. Registra resultado em UploadStateStore
 3. Aguarda todos os uploads concluírem (SemaphoreSlim com MaxUploadConcurrency)
 ```
@@ -113,27 +109,57 @@ FiscalAnalyzer.Agent/
 ### 5.2 Geração e envio do manifesto
 
 ```
-4. ManifestBuilder monta lista de ManifestEntry para os arquivos com sucesso
-5. ManifestSender faz POST /imports/manifest
-6. Backend registra importacao + import_items em batch e enfileira parse
-7. Agente registra importacaoId retornado no UploadStateStore
+4. Agente chama POST /agent/session (Bearer ApiKey) para obter tenant/empresa do ciclo
+5. ManifestBuilder monta lista de ManifestEntry para os arquivos com sucesso
+6. ManifestSender faz POST /imports/manifest com Bearer ApiKey
+7. Backend registra importacao + import_items em batch e enfileira parse
+8. Agente registra importacaoId retornado no UploadStateStore
+
+Observação:
+- enviar `X-Agent-Id` estável nas chamadas autenticadas para melhorar identificação operacional e lockout.
 ```
 
 ### 5.3 Retry local (Polly)
 
 - Upload: 3 tentativas, backoff exponencial 1s → 4s → 16s
 - POST manifesto: 3 tentativas, backoff 2s → 8s
+- Em `429 RATE_LIMITED`: respeitar `Retry-After` antes de nova tentativa
 - Em caso de falha total: log estruturado + próxima varredura recomeça do ponto salvo
 
 ---
 
 ## 6. Contrato da API — POST /imports/manifest
 
+Antes do manifesto, o agente usa também:
+
+### `POST /agent/upload-url`
+
+Request:
+
+```json
+{
+  "sha256": "a3f5c2d1e8b4f7a2c9d3e6f1b8a5c2d4e7f0a1b3c6d9e2f5a8b1c4d7e0f3a6b9",
+  "originalFileName": "NF-35240101234567.xml",
+  "sizeBytes": 14320
+}
+```
+
+Response:
+
+```json
+{
+  "uploadUrl": "https://...assinada...",
+  "objectKey": "1/10/a3f5c2d1e8b4f7a2c9d3e6f1b8a5c2d4e7f0a1b3c6d9e2f5a8b1c4d7e0f3a6b9.xml",
+  "expiresIn": 900
+}
+```
+
 ### Request
 
 ```
 POST /imports/manifest
 Content-Type: application/json
+Authorization: Bearer fa_live_xxxxxxxxx
 ```
 
 ```json
@@ -175,6 +201,9 @@ Content-Type: application/json
 
 | HTTP | Situação |
 |---|---|
+| 401 | ApiKey ausente/inválida |
+| 403 | ApiKey revogada/inativa ou tenant/empresa divergente |
+| 429 | Rate limit/lockout ativo (usar `Retry-After`) |
 | 400 | Manifesto vazio ou campos obrigatórios ausentes |
 | 422 | `objectKey` não encontrado no storage |
 | 500 | Erro interno — agente deve fazer retry |

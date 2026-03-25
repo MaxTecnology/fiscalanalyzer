@@ -128,6 +128,26 @@ Características:
 
 ---
 
+### 2.8 Segurança Agent ↔ Backend
+Responsável por:
+- autenticar agente via `ApiKey` (`Bearer`)
+- autorizar por escopo `tenant/empresa`
+- emitir URL pré-assinada para upload (`/agent/upload-url`)
+- auditar emissões de upload URL (`agent_upload_audit`)
+- auditar autenticação/autorização (`agent_auth_audit`)
+- aplicar rate-limit por `apiKey` e lockout para tentativas inválidas
+
+Características:
+- chave em plaintext exibida apenas na criação
+- backend persiste apenas hash SHA-256 da chave
+- manifesto validado contra `tenantId/empresaId` da chave
+- respostas de proteção retornam `429 RATE_LIMITED` com header `Retry-After`
+- estado de rate-limit/lockout persistido no Redis para consistência entre réplicas
+- rotação de chave sem downtime via endpoint admin de `rotate`
+- retenção automática de auditoria (`agent_auth_audit` e `agent_upload_audit`) por job agendado
+
+---
+
 ## 3. Fluxo principal de importação
 
 ### 3.1 Upload
@@ -283,6 +303,9 @@ Status atual:
 - Agente de ingestão (C#) documentado em `AGENT_ARCHITECTURE.md` — implementação pendente.
 - Endpoint `POST /imports/manifest` implementado (cria `importacao` MANIFEST + `import_item` em batch e publica parse AFTER_COMMIT).
 - Worker de parse suporta dois modos: ZIP (`zipEntryName`) e XML direto no storage (`storage_object_key`).
+- Segurança backend↔agent (Fases 1-3) implementada: `POST /agent/session`, `POST /agent/upload-url`, `POST /imports/manifest` protegido com Bearer ApiKey + cross-check tenant/empresa.
+- Gestão de ApiKey ativa via rotas admin (`/admin/empresas/{empresaId}/agent-keys`, incluindo `rotate`), protegidas por `X-Admin-Token`.
+- Hardening operacional ativo: Redis para rate-limit/lockout distribuído, auditoria dedicada e retenção automática dos eventos de segurança.
 
 ---
 
@@ -296,5 +319,6 @@ Antes de implementar qualquer código:
 5. Respeitar responsabilidades dos pacotes
 6. Para chamadas manuais de API, usar `FiscalAnalyzer.routes.http`
 7. Para deploy em Dockploy, seguir `DEPLOY_DOCKPLOY.md`
+8. Para segurança backend↔agent, acompanhar `BACKEND_AGENT_SECURITY_PLAN.md` e `BACKEND_AGENT_SECURITY_CHECKLIST.md`
 
 Isso garante consistência e evita código fora do padrão arquitetural.

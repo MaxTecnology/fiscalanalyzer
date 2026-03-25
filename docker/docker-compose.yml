@@ -31,6 +31,20 @@ services:
       timeout: 5s
       retries: 20
 
+  redis:
+    image: redis:7-alpine
+    container_name: fiscalanalyzer-redis
+    command: ["redis-server", "--appendonly", "yes"]
+    ports:
+      - "6379:6379"
+    volumes:
+      - fiscalanalyzer_redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
   app:
     build:
       context: ..
@@ -45,12 +59,24 @@ services:
       RABBITMQ_PORT: 5672
       RABBITMQ_USER: ${RABBITMQ_USER:-fiscalanalyzer}
       RABBITMQ_PASSWORD: ${RABBITMQ_PASSWORD:-fiscalanalyzer}
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      REDIS_PASSWORD: ${REDIS_PASSWORD:-}
       STORAGE_S3_ENDPOINT: ${STORAGE_S3_ENDPOINT}
       STORAGE_S3_ACCESS_KEY: ${STORAGE_S3_ACCESS_KEY}
       STORAGE_S3_SECRET_KEY: ${STORAGE_S3_SECRET_KEY}
       STORAGE_S3_BUCKET: ${STORAGE_S3_BUCKET}
       STORAGE_S3_REGION: ${STORAGE_S3_REGION:-us-east-1}
       STORAGE_S3_PATH_STYLE_ACCESS: ${STORAGE_S3_PATH_STYLE_ACCESS:-false}
+      APP_SECURITY_ADMIN_TOKEN: ${APP_SECURITY_ADMIN_TOKEN:-}
+      APP_SECURITY_RATE_LIMIT_BACKEND: ${APP_SECURITY_RATE_LIMIT_BACKEND:-redis}
+      APP_SECURITY_AUTH_AUDIT_MODE: ${APP_SECURITY_AUTH_AUDIT_MODE:-failures}
+      APP_SECURITY_AUDIT_CLEANUP_ENABLED: ${APP_SECURITY_AUDIT_CLEANUP_ENABLED:-true}
+      APP_SECURITY_AUDIT_CLEANUP_CRON: ${APP_SECURITY_AUDIT_CLEANUP_CRON:-0 30 3 * * *}
+      APP_SECURITY_AUDIT_CLEANUP_AUTH_RETENTION_DAYS: ${APP_SECURITY_AUDIT_CLEANUP_AUTH_RETENTION_DAYS:-90}
+      APP_SECURITY_AUDIT_CLEANUP_UPLOAD_RETENTION_DAYS: ${APP_SECURITY_AUDIT_CLEANUP_UPLOAD_RETENTION_DAYS:-30}
+      APP_SECURITY_AUDIT_CLEANUP_BATCH_SIZE: ${APP_SECURITY_AUDIT_CLEANUP_BATCH_SIZE:-5000}
+      APP_SECURITY_AUDIT_CLEANUP_MAX_BATCHES: ${APP_SECURITY_AUDIT_CLEANUP_MAX_BATCHES:-100}
     ports:
       - "8080:8080"
     depends_on:
@@ -58,6 +84,9 @@ services:
         condition: service_healthy
       rabbitmq:
         condition: service_healthy
+      redis:
+        condition: service_healthy
 
 volumes:
   fiscalanalyzer_pgdata:
+  fiscalanalyzer_redis_data:

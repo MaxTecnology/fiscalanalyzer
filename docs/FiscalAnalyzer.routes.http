@@ -7,6 +7,10 @@
 @empresaId = 99
 @importacaoId = 1
 @accessKey = 35191111111111111111550010000000011000000010
+@agentApiKey = fa_live_xxxxxxxxxxxxxxxxxxxxxxxx
+@adminToken = REPLACE_WITH_APP_SECURITY_ADMIN_TOKEN
+@empresaAdminId = 99
+@agentKeyId = 1
 
 ###
 ### Health
@@ -39,6 +43,7 @@ Content-Type: application/zip
 ###
 ### Manifest (rota principal)
 POST {{baseUrl}}/imports/manifest
+Authorization: Bearer {{agentApiKey}}
 Content-Type: application/json
 
 {
@@ -57,6 +62,7 @@ Content-Type: application/json
 ###
 ### Manifest (alias legado)
 POST {{baseUrl}}/api/importacoes/manifest
+Authorization: Bearer {{agentApiKey}}
 Content-Type: application/json
 
 {
@@ -91,6 +97,7 @@ GET {{baseUrl}}/documents/{{accessKey}}?tenantId={{tenantId}}&empresaId={{empres
 ###
 ### Cenário de erro 422 (objectKey inexistente)
 POST {{baseUrl}}/imports/manifest
+Authorization: Bearer {{agentApiKey}}
 Content-Type: application/json
 
 {
@@ -102,4 +109,115 @@ Content-Type: application/json
       "sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
     }
   ]
+}
+
+###
+### -----------------------------------------------------------------
+### SEGURANÇA AGENT (fase 1)
+### -----------------------------------------------------------------
+
+###
+### Agent Session
+POST {{baseUrl}}/agent/session
+Authorization: Bearer {{agentApiKey}}
+X-Agent-Id: desktop-agent-01
+Content-Type: application/json
+
+{}
+
+###
+### Agent Session - repetir em burst para validar 429 + Retry-After
+POST {{baseUrl}}/agent/session
+Authorization: Bearer {{agentApiKey}}
+Content-Type: application/json
+
+{}
+
+###
+### Agent Upload URL
+POST {{baseUrl}}/agent/upload-url
+Authorization: Bearer {{agentApiKey}}
+X-Agent-Id: desktop-agent-01
+Content-Type: application/json
+
+{
+  "sha256": "9f81409800c24998f96a4f8e2e1bab1dfe93144563fcb2c3b946b5461ad15869",
+  "originalFileName": "nfe-001.xml",
+  "sizeBytes": 1500
+}
+
+###
+### Agent Upload URL - cenário duplicado (409)
+POST {{baseUrl}}/agent/upload-url
+Authorization: Bearer {{agentApiKey}}
+Content-Type: application/json
+
+{
+  "sha256": "9f81409800c24998f96a4f8e2e1bab1dfe93144563fcb2c3b946b5461ad15869",
+  "originalFileName": "nfe-001.xml",
+  "sizeBytes": 1500
+}
+
+###
+### Agent Upload URL - repetir em burst para validar 429 + Retry-After
+POST {{baseUrl}}/agent/upload-url
+Authorization: Bearer {{agentApiKey}}
+Content-Type: application/json
+
+{
+  "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+  "originalFileName": "burst-test.xml",
+  "sizeBytes": 1500
+}
+
+###
+### Manifest autenticado (contrato do agente)
+POST {{baseUrl}}/imports/manifest
+Authorization: Bearer {{agentApiKey}}
+X-Agent-Id: desktop-agent-01
+Content-Type: application/json
+
+{
+  "tenantId": {{tenantId}},
+  "empresaId": {{empresaId}},
+  "entries": [
+    {
+      "objectKey": "99/99/9f81409800c24998f96a4f8e2e1bab1dfe93144563fcb2c3b946b5461ad15869.xml",
+      "sha256": "9f81409800c24998f96a4f8e2e1bab1dfe93144563fcb2c3b946b5461ad15869",
+      "sizeBytes": 1500,
+      "originalFileName": "nfe-001.xml"
+    }
+  ]
+}
+
+###
+### Admin - criar Agent API Key (requer X-Admin-Token)
+POST {{baseUrl}}/admin/empresas/{{empresaAdminId}}/agent-keys
+X-Admin-Token: {{adminToken}}
+Content-Type: application/json
+
+{
+  "descricao": "Servidor principal de XML"
+}
+
+###
+### Admin - listar Agent API Keys (requer X-Admin-Token)
+GET {{baseUrl}}/admin/empresas/{{empresaAdminId}}/agent-keys
+X-Admin-Token: {{adminToken}}
+
+###
+### Admin - revogar Agent API Key (requer X-Admin-Token)
+DELETE {{baseUrl}}/admin/empresas/{{empresaAdminId}}/agent-keys/{{agentKeyId}}
+X-Admin-Token: {{adminToken}}
+
+###
+### Admin - rotacionar Agent API Key sem downtime (requer X-Admin-Token)
+### `revokeOld=false` mantém a chave antiga ativa durante transição do agente
+POST {{baseUrl}}/admin/empresas/{{empresaAdminId}}/agent-keys/{{agentKeyId}}/rotate?tenantId={{tenantId}}&revokeOld=false
+X-Admin-Token: {{adminToken}}
+Content-Type: application/json
+
+{
+  "descricao": "rotacao sem downtime",
+  "criadoPor": "admin"
 }
