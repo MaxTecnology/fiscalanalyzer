@@ -353,5 +353,7 @@ Antes de implementar qualquer código:
 12. Para execução por fases da fundação de identidade, acompanhar `IDENTITY_FOUNDATION_CHECKLIST.md`
 13. Para validação manual fim-a-fim (identidade + agent + pipeline), seguir `SMOKE_TEST_HOMOLOG_IDENTITY_PIPELINE.md`
 14. Para handoff direto às equipes Agent e Front, usar `HANDOFF_AGENT_FRONT.md`
+15. Para iniciar o front administrativo do zero, seguir `FRONTEND_SPEC.md`
+16. Para homologação da fase de monitoramento do front, seguir `FASE6_HOMOLOG_CHECKLIST.md`
 
 Isso garante consistência e evita código fora do padrão arquitetural.

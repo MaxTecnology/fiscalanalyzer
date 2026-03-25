@@ -51,6 +51,7 @@ public class ApiSecurityInterceptor implements HandlerInterceptor {
             "/auth/me",
             "/imports/upload",
             "/api/importacoes/upload",
+            "/imports",
             "/imports/*",
             "/imports/*/items",
             "/documents/**"

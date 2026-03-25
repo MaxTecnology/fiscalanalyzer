@@ -182,6 +182,19 @@ class ApiSecurityInterceptorTest {
     }
 
     @Test
+    void importsList_bearerJwtValido_defineContexto() {
+        ApiSecurityInterceptor interceptor = interceptor();
+        MockHttpServletRequest req = new MockHttpServletRequest("GET", "/imports");
+        req.addHeader("Authorization", "Bearer jwt-token");
+        MockHttpServletResponse resp = new MockHttpServletResponse();
+        UserAuthContext context = new UserAuthContext(9L, "operador@empresa.com", List.of("OPERADOR"));
+        when(identityAuthService.authenticateUserBearer("jwt-token")).thenReturn(context);
+
+        assertTrue(interceptor.preHandle(req, resp, new Object()));
+        assertSame(context, req.getAttribute(UserAuthRequestContext.REQUEST_ATTRIBUTE));
+    }
+
+    @Test
     void importsUpload_bearerJwtValido_defineContexto() {
         ApiSecurityInterceptor interceptor = interceptor();
         MockHttpServletRequest req = new MockHttpServletRequest("POST", "/imports/upload");

@@ -6,7 +6,9 @@ import br.com.techbr.fiscalanalyzer.identity.security.UserAuthRequestContext;
 import br.com.techbr.fiscalanalyzer.importacao.dto.ImportacaoDetailResponse;
 import br.com.techbr.fiscalanalyzer.importacao.dto.ImportItemResponse;
 import br.com.techbr.fiscalanalyzer.importacao.dto.ImportItemStatusCountResponse;
+import br.com.techbr.fiscalanalyzer.importacao.dto.ImportacaoSummaryResponse;
 import br.com.techbr.fiscalanalyzer.importacao.model.ImportItemStatus;
+import br.com.techbr.fiscalanalyzer.importacao.model.ImportacaoStatus;
 import br.com.techbr.fiscalanalyzer.importacao.service.ImportacaoReadService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -69,6 +71,42 @@ class ImportacaoReadControllerTest {
     }
 
     @Test
+    void get_imports_lista_paginada() throws Exception {
+        ImportacaoSummaryResponse summary = new ImportacaoSummaryResponse(
+                11L,
+                "CONCLUIDO",
+                "ZIP",
+                50,
+                48,
+                2,
+                Instant.now(),
+                Instant.now()
+        );
+        Page<ImportacaoSummaryResponse> page = new PageImpl<>(
+                List.of(summary),
+                org.springframework.data.domain.PageRequest.of(0, 20),
+                1
+        );
+        when(readService.listImports(eq(99L), eq(42L), eq(ImportacaoStatus.CONCLUIDO), any(), any())).thenReturn(page);
+
+        mockMvc.perform(get("/imports")
+                        .param("tenantId", "99")
+                        .param("empresaId", "42")
+                        .param("status", "CONCLUIDO")
+                        .param("page", "0")
+                        .param("size", "20")
+                        .requestAttr(UserAuthRequestContext.REQUEST_ATTRIBUTE,
+                                new UserAuthContext(7L, "leitor@empresa.com", List.of("LEITOR"))))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.content[0].id").value(11))
+                .andExpect(jsonPath("$.content[0].status").value("CONCLUIDO"))
+                .andExpect(jsonPath("$.content[0].sourceType").value("ZIP"))
+                .andExpect(jsonPath("$.content[0].totalItems").value(50))
+                .andExpect(jsonPath("$.content[0].processedItems").value(48))
+                .andExpect(jsonPath("$.content[0].failedItems").value(2));
+    }
+
+    @Test
     void get_imports_items() throws Exception {
         ImportItemResponse item = new ImportItemResponse(
                 10L,
@@ -96,5 +134,16 @@ class ImportacaoReadControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.content[0].id").value(10))
                 .andExpect(jsonPath("$.content[0].status").value("PARSEADO"));
+    }
+
+    @Test
+    void get_imports_sortInvalido_retorna400() throws Exception {
+        mockMvc.perform(get("/imports")
+                        .param("tenantId", "99")
+                        .param("empresaId", "42")
+                        .param("sort", "foo,desc")
+                        .requestAttr(UserAuthRequestContext.REQUEST_ATTRIBUTE,
+                                new UserAuthContext(7L, "leitor@empresa.com", List.of("LEITOR"))))
+                .andExpect(status().isBadRequest());
     }
 }

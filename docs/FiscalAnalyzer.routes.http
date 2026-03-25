@@ -20,7 +20,7 @@
 @userEmail = operador.hml@empresa.com
 @userPassword = SenhaForte123
 @userJwt = colar_jwt_login_aqui
-@bootstrapToken = change_me_one_time_bootstrap_token
+@bootstrapToken = 5be700a619329357ebb05c3a54e410d647d6a7017207ebc5d8449d6c362ca15e
 
 ###
 ### Health
@@ -48,7 +48,7 @@ Content-Type: application/json
   "empresaCnpj": "{{empresaCnpj}}",
   "nome": "Admin Bootstrap",
   "email": "admin@techbr.com",
-  "password": "SenhaForte123"
+  "password": "Password@12"
 }
 
 ###
@@ -129,6 +129,11 @@ Content-Type: application/json
 ###
 ### Importação por ID
 GET {{baseUrl}}/imports/{{importacaoId}}
+Authorization: Bearer {{userJwt}}
+
+###
+### Listar importações (paginado + filtro opcional por status)
+GET {{baseUrl}}/imports?tenantId={{tenantId}}&empresaId={{empresaId}}&page=0&size=20&status=CONCLUIDO
 Authorization: Bearer {{userJwt}}
 
 ###

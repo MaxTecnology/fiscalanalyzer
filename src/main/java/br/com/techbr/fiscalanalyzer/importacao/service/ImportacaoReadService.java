@@ -6,9 +6,11 @@ import br.com.techbr.fiscalanalyzer.identity.service.UserAuthorizationService;
 import br.com.techbr.fiscalanalyzer.importacao.dto.ImportacaoDetailResponse;
 import br.com.techbr.fiscalanalyzer.importacao.dto.ImportItemResponse;
 import br.com.techbr.fiscalanalyzer.importacao.dto.ImportItemStatusCountResponse;
+import br.com.techbr.fiscalanalyzer.importacao.dto.ImportacaoSummaryResponse;
 import br.com.techbr.fiscalanalyzer.importacao.model.ImportItem;
 import br.com.techbr.fiscalanalyzer.importacao.model.ImportItemStatus;
 import br.com.techbr.fiscalanalyzer.importacao.model.Importacao;
+import br.com.techbr.fiscalanalyzer.importacao.model.ImportacaoStatus;
 import br.com.techbr.fiscalanalyzer.importacao.repository.ImportItemRepository;
 import br.com.techbr.fiscalanalyzer.importacao.repository.ImportacaoRepository;
 import org.springframework.data.domain.Page;
@@ -31,6 +33,22 @@ public class ImportacaoReadService {
         this.importacaoRepository = importacaoRepository;
         this.importItemRepository = importItemRepository;
         this.userAuthorizationService = userAuthorizationService;
+    }
+
+    @Transactional(readOnly = true)
+    public Page<ImportacaoSummaryResponse> listImports(Long tenantId,
+                                                       Long empresaId,
+                                                       ImportacaoStatus status,
+                                                       Pageable pageable,
+                                                       UserAuthContext auth) {
+        userAuthorizationService.assertCanRead(auth, tenantId, empresaId);
+        Page<Importacao> page;
+        if (status == null) {
+            page = importacaoRepository.findByTenantIdAndEmpresaId(tenantId, empresaId, pageable);
+        } else {
+            page = importacaoRepository.findByTenantIdAndEmpresaIdAndStatus(tenantId, empresaId, status, pageable);
+        }
+        return page.map(this::toSummaryResponse);
     }
 
     @Transactional(readOnly = true)
@@ -89,6 +107,23 @@ public class ImportacaoReadService {
                 item.getCreatedAt(),
                 item.getUpdatedAt()
         );
+    }
+
+    private ImportacaoSummaryResponse toSummaryResponse(Importacao importacao) {
+        return new ImportacaoSummaryResponse(
+                importacao.getId(),
+                importacao.getStatus().name(),
+                importacao.getSourceType().name(),
+                safeInt(importacao.getTotalEncontrado()),
+                safeInt(importacao.getTotalProcessado()),
+                safeInt(importacao.getTotalErros()),
+                importacao.getCreatedAt(),
+                importacao.getUpdatedAt()
+        );
+    }
+
+    private long safeInt(Integer value) {
+        return value == null ? 0 : value.longValue();
     }
 
     private Importacao loadAndAuthorize(Long importacaoId, UserAuthContext auth) {

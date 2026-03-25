@@ -1,15 +1,20 @@
 package br.com.techbr.fiscalanalyzer.importacao.service;
 
 import br.com.techbr.fiscalanalyzer.importacao.dto.ImportacaoDetailResponse;
+import br.com.techbr.fiscalanalyzer.importacao.dto.ImportacaoSummaryResponse;
 import br.com.techbr.fiscalanalyzer.identity.security.UserAuthContext;
 import br.com.techbr.fiscalanalyzer.identity.service.UserAuthorizationService;
 import br.com.techbr.fiscalanalyzer.importacao.model.ImportItemStatus;
 import br.com.techbr.fiscalanalyzer.importacao.model.Importacao;
+import br.com.techbr.fiscalanalyzer.importacao.model.ImportacaoSourceType;
 import br.com.techbr.fiscalanalyzer.importacao.model.ImportacaoStatus;
 import br.com.techbr.fiscalanalyzer.importacao.repository.ImportItemRepository;
 import br.com.techbr.fiscalanalyzer.importacao.repository.ImportacaoRepository;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.test.util.ReflectionTestUtils;
 
 import java.time.Instant;
@@ -17,6 +22,8 @@ import java.util.List;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 class ImportacaoReadServiceTest {
@@ -46,6 +53,42 @@ class ImportacaoReadServiceTest {
         ImportacaoDetailResponse response = service.getDetail(1L, new UserAuthContext(7L, "leitor@empresa.com", List.of("LEITOR")));
         assertEquals(5L, response.totalItems());
         assertEquals(2, response.statusCounts().size());
+    }
+
+    @Test
+    void listImports_filtraPorTenantEmpresaStatus() {
+        ImportacaoRepository importacaoRepository = Mockito.mock(ImportacaoRepository.class);
+        ImportItemRepository importItemRepository = Mockito.mock(ImportItemRepository.class);
+        UserAuthorizationService userAuthorizationService = Mockito.mock(UserAuthorizationService.class);
+        ImportacaoReadService service = new ImportacaoReadService(importacaoRepository, importItemRepository, userAuthorizationService);
+
+        Importacao imp = new Importacao();
+        ReflectionTestUtils.setField(imp, "id", 11L);
+        imp.setStatus(ImportacaoStatus.CONCLUIDO);
+        imp.setSourceType(ImportacaoSourceType.ZIP);
+        imp.setTotalEncontrado(50);
+        imp.setTotalProcessado(48);
+        imp.setTotalErros(2);
+        ReflectionTestUtils.setField(imp, "createdAt", Instant.now());
+        ReflectionTestUtils.setField(imp, "updatedAt", Instant.now());
+
+        PageRequest pageable = PageRequest.of(0, 20);
+        UserAuthContext auth = new UserAuthContext(7L, "leitor@empresa.com", List.of("LEITOR"));
+        when(importacaoRepository.findByTenantIdAndEmpresaIdAndStatus(99L, 42L, ImportacaoStatus.CONCLUIDO, pageable))
+                .thenReturn(new PageImpl<>(List.of(imp), pageable, 1));
+
+        Page<ImportacaoSummaryResponse> page = service.listImports(
+                99L,
+                42L,
+                ImportacaoStatus.CONCLUIDO,
+                pageable,
+                auth
+        );
+
+        assertEquals(1, page.getTotalElements());
+        assertEquals("CONCLUIDO", page.getContent().getFirst().status());
+        assertEquals(50L, page.getContent().getFirst().totalItems());
+        verify(userAuthorizationService).assertCanRead(eq(auth), eq(99L), eq(42L));
     }
 
     private record StatusCount(ImportItemStatus status, long count)
