@@ -5,6 +5,9 @@ import br.com.techbr.fiscalanalyzer.common.exception.UnprocessableEntityExceptio
 import br.com.techbr.fiscalanalyzer.common.exception.ValidationException;
 import br.com.techbr.fiscalanalyzer.agent.security.AgentAuthContext;
 import br.com.techbr.fiscalanalyzer.agent.security.AgentAuthRequestContext;
+import br.com.techbr.fiscalanalyzer.identity.security.UserAuthContext;
+import br.com.techbr.fiscalanalyzer.identity.security.UserAuthRequestContext;
+import br.com.techbr.fiscalanalyzer.identity.service.UserAuthorizationService;
 import br.com.techbr.fiscalanalyzer.importacao.dto.ManifestRequest;
 import br.com.techbr.fiscalanalyzer.importacao.model.Importacao;
 import br.com.techbr.fiscalanalyzer.importacao.model.ImportacaoSourceType;
@@ -32,11 +35,13 @@ class ImportacaoControllerTest {
 
     private MockMvc mockMvc;
     private ImportacaoService importacaoService;
+    private UserAuthorizationService userAuthorizationService;
 
     @BeforeEach
     void setUp() {
         importacaoService = mock(ImportacaoService.class);
-        ImportacaoController controller = new ImportacaoController(importacaoService);
+        userAuthorizationService = mock(UserAuthorizationService.class);
+        ImportacaoController controller = new ImportacaoController(importacaoService, userAuthorizationService);
         mockMvc = MockMvcBuilders.standaloneSetup(controller)
                 .setControllerAdvice(new ApiExceptionHandler())
                 .build();
@@ -60,7 +65,9 @@ class ImportacaoControllerTest {
         mockMvc.perform(multipart("/imports/upload")
                         .file(file)
                         .param("tenantId", "1")
-                        .param("empresaId", "2"))
+                        .param("empresaId", "2")
+                        .requestAttr(UserAuthRequestContext.REQUEST_ATTRIBUTE,
+                                new UserAuthContext(7L, "operador@empresa.com", java.util.List.of("OPERADOR"))))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.importacaoId").value(1))
                 .andExpect(jsonPath("$.status").value("RECEBIDO"));
@@ -81,7 +88,9 @@ class ImportacaoControllerTest {
         mockMvc.perform(multipart("/imports/upload")
                         .file(file)
                         .param("tenantId", "1")
-                        .param("empresaId", "2"))
+                        .param("empresaId", "2")
+                        .requestAttr(UserAuthRequestContext.REQUEST_ATTRIBUTE,
+                                new UserAuthContext(7L, "operador@empresa.com", java.util.List.of("OPERADOR"))))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.code").value("VALIDATION_ERROR"));
     }

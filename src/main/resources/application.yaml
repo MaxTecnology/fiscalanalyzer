@@ -16,7 +16,10 @@ app:
   importacao:
     max-zip-size: 200MB
   security:
-    admin-token: ${APP_SECURITY_ADMIN_TOKEN:}
+    bootstrap-token: ${APP_SECURITY_BOOTSTRAP_TOKEN:}
+    jwt:
+      secret: ${APP_SECURITY_JWT_SECRET:}
+      access-token-ttl-seconds: ${APP_SECURITY_JWT_ACCESS_TOKEN_TTL_SECONDS:3600}
     auth-audit:
       mode: ${APP_SECURITY_AUTH_AUDIT_MODE:failures}
     audit-cleanup:

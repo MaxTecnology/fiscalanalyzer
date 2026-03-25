@@ -6,11 +6,12 @@ import br.com.techbr.fiscalanalyzer.agent.model.AgentAuthAuditResult;
 import br.com.techbr.fiscalanalyzer.common.exception.ForbiddenException;
 import br.com.techbr.fiscalanalyzer.common.exception.TooManyRequestsException;
 import br.com.techbr.fiscalanalyzer.common.exception.UnauthorizedException;
+import br.com.techbr.fiscalanalyzer.identity.security.UserAuthRequestContext;
+import br.com.techbr.fiscalanalyzer.identity.service.IdentityAuthService;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.lang.NonNull;
 import org.springframework.stereotype.Component;
 import org.springframework.util.AntPathMatcher;
@@ -28,7 +29,6 @@ public class ApiSecurityInterceptor implements HandlerInterceptor {
     private static final Logger log = LoggerFactory.getLogger(ApiSecurityInterceptor.class);
     private static final String AUTHORIZATION = "Authorization";
     private static final String BEARER_PREFIX = "Bearer ";
-    private static final String ADMIN_TOKEN_HEADER = "X-Admin-Token";
     private static final String USER_AGENT_HEADER = "User-Agent";
     private static final String X_FORWARDED_FOR = "X-Forwarded-For";
     private static final String X_AGENT_ID = "X-Agent-Id";
@@ -36,7 +36,7 @@ public class ApiSecurityInterceptor implements HandlerInterceptor {
     private final AgentApiKeyService agentApiKeyService;
     private final ApiRateLimitService apiRateLimitService;
     private final AgentAuthAuditService agentAuthAuditService;
-    private final String adminToken;
+    private final IdentityAuthService identityAuthService;
     private final AntPathMatcher antPathMatcher = new AntPathMatcher();
 
     private final List<String> agentProtectedPatterns = List.of(
@@ -47,15 +47,23 @@ public class ApiSecurityInterceptor implements HandlerInterceptor {
     private final List<String> adminProtectedPatterns = List.of(
             "/admin/**"
     );
+    private final List<String> userProtectedPatterns = List.of(
+            "/auth/me",
+            "/imports/upload",
+            "/api/importacoes/upload",
+            "/imports/*",
+            "/imports/*/items",
+            "/documents/**"
+    );
 
     public ApiSecurityInterceptor(AgentApiKeyService agentApiKeyService,
                                   ApiRateLimitService apiRateLimitService,
                                   AgentAuthAuditService agentAuthAuditService,
-                                  @Value("${app.security.admin-token:}") String adminToken) {
+                                  IdentityAuthService identityAuthService) {
         this.agentApiKeyService = agentApiKeyService;
         this.apiRateLimitService = apiRateLimitService;
         this.agentAuthAuditService = agentAuthAuditService;
-        this.adminToken = adminToken;
+        this.identityAuthService = identityAuthService;
     }
 
     @Override
@@ -70,7 +78,7 @@ public class ApiSecurityInterceptor implements HandlerInterceptor {
 
         if (matches(path, adminProtectedPatterns)) {
             String fingerprint = buildFingerprint(request);
-            validateAdmin(request, fingerprint);
+            validateAdmin(request, path, fingerprint);
             return true;
         }
 
@@ -79,7 +87,7 @@ public class ApiSecurityInterceptor implements HandlerInterceptor {
             String fingerprint = buildFingerprint(request);
             AgentAuthContext context;
             try {
-                String rawApiKey = extractBearerToken(request);
+                String rawApiKey = extractBearerToken(request, "ApiKey ausente no Authorization");
                 context = agentApiKeyService.authenticate(rawApiKey);
             } catch (UnauthorizedException | ForbiddenException ex) {
                 try {
@@ -106,27 +114,28 @@ public class ApiSecurityInterceptor implements HandlerInterceptor {
             return true;
         }
 
+        if (matches(path, userProtectedPatterns)) {
+            String token = extractBearerToken(request, "JWT ausente no Authorization");
+            var userContext = identityAuthService.authenticateUserBearer(token);
+            request.setAttribute(UserAuthRequestContext.REQUEST_ATTRIBUTE, userContext);
+            return true;
+        }
+
         return true;
     }
 
-    private void validateAdmin(HttpServletRequest request, String fingerprint) {
-        String route = request.getRequestURI();
-        if (!StringUtils.hasText(adminToken)) {
-            agentAuthAuditService.recordAdminFailure(route, fingerprint, AgentAuthAuditResult.FORBIDDEN, "Admin token nao configurado");
-            throw new ForbiddenException("Admin token nao configurado");
-        }
-        String token = request.getHeader(ADMIN_TOKEN_HEADER);
-        if (!StringUtils.hasText(token)) {
-            agentAuthAuditService.recordAdminFailure(route, fingerprint, AgentAuthAuditResult.UNAUTHORIZED, "X-Admin-Token ausente");
-            throw new UnauthorizedException("X-Admin-Token ausente");
-        }
-        if (!adminToken.equals(token)) {
-            agentAuthAuditService.recordAdminFailure(route, fingerprint, AgentAuthAuditResult.FORBIDDEN, "X-Admin-Token invalido");
-            throw new ForbiddenException("X-Admin-Token invalido");
+    private void validateAdmin(HttpServletRequest request, String route, String fingerprint) {
+        try {
+            String token = extractBearerToken(request, "JWT ausente no Authorization");
+            var userContext = identityAuthService.authenticateAdminBearer(token);
+            request.setAttribute(UserAuthRequestContext.REQUEST_ATTRIBUTE, userContext);
+        } catch (UnauthorizedException | ForbiddenException ex) {
+            agentAuthAuditService.recordAdminFailure(route, fingerprint, toAuditResult(ex), ex.getMessage());
+            throw ex;
         }
     }
 
-    private String extractBearerToken(HttpServletRequest request) {
+    private String extractBearerToken(HttpServletRequest request, String missingTokenMessage) {
         String authorization = request.getHeader(AUTHORIZATION);
         if (!StringUtils.hasText(authorization)) {
             throw new UnauthorizedException("Authorization Bearer ausente");
@@ -136,7 +145,7 @@ public class ApiSecurityInterceptor implements HandlerInterceptor {
         }
         String token = authorization.substring(BEARER_PREFIX.length()).trim();
         if (!StringUtils.hasText(token)) {
-            throw new UnauthorizedException("ApiKey ausente no Authorization");
+            throw new UnauthorizedException(missingTokenMessage);
         }
         return token;
     }

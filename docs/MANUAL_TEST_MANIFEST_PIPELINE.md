@@ -1,5 +1,8 @@
 # Manual Test — Manifest Pipeline (Upload direto XML -> Parse -> Consulta)
 
+Status: guia complementar (fluxo específico de manifesto).  
+Para validação completa de homologação, usar `SMOKE_TEST_HOMOLOG_IDENTITY_PIPELINE.md`.
+
 Este roteiro valida o fluxo de alto volume com manifesto:
 1. XML já no storage (S3/Backblaze)
 2. `POST /imports/manifest`

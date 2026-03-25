@@ -4,6 +4,7 @@ import br.com.techbr.fiscalanalyzer.common.exception.ValidationException;
 import br.com.techbr.fiscalanalyzer.documento.dto.FiscalDocumentResponse;
 import br.com.techbr.fiscalanalyzer.documento.model.FiscalDocument;
 import br.com.techbr.fiscalanalyzer.documento.repository.FiscalDocumentRepository;
+import br.com.techbr.fiscalanalyzer.identity.service.TenantEmpresaValidationService;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -11,16 +12,17 @@ import org.springframework.transaction.annotation.Transactional;
 public class DocumentQueryService {
 
     private final FiscalDocumentRepository fiscalDocumentRepository;
+    private final TenantEmpresaValidationService tenantEmpresaValidationService;
 
-    public DocumentQueryService(FiscalDocumentRepository fiscalDocumentRepository) {
+    public DocumentQueryService(FiscalDocumentRepository fiscalDocumentRepository,
+                                TenantEmpresaValidationService tenantEmpresaValidationService) {
         this.fiscalDocumentRepository = fiscalDocumentRepository;
+        this.tenantEmpresaValidationService = tenantEmpresaValidationService;
     }
 
     @Transactional(readOnly = true)
     public FiscalDocumentResponse findByAccessKey(Long tenantId, Long empresaId, String accessKey) {
-        if (tenantId == null || empresaId == null) {
-            throw new ValidationException("tenantId e empresaId sao obrigatorios");
-        }
+        tenantEmpresaValidationService.validateAtivo(tenantId, empresaId);
         if (accessKey == null || accessKey.length() != 44) {
             throw new ValidationException("accessKey invalido");
         }

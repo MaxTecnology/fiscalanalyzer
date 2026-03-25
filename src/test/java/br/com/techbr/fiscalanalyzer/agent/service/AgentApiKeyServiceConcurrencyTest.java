@@ -4,6 +4,7 @@ import br.com.techbr.fiscalanalyzer.agent.dto.AdminCreateAgentKeyRequest;
 import br.com.techbr.fiscalanalyzer.agent.model.AgentApiKey;
 import br.com.techbr.fiscalanalyzer.agent.repository.AgentApiKeyRepository;
 import br.com.techbr.fiscalanalyzer.common.exception.ValidationException;
+import br.com.techbr.fiscalanalyzer.identity.service.TenantEmpresaValidationService;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
@@ -28,9 +29,12 @@ class AgentApiKeyServiceConcurrencyTest {
     @Mock
     private AgentApiKeyRepository repository;
 
+    @Mock
+    private TenantEmpresaValidationService tenantEmpresaValidationService;
+
     @Test
     void rotateKey_concorrente_apenasUmaRotacaoComRevogacao() throws Exception {
-        AgentApiKeyService service = new AgentApiKeyService(repository);
+        AgentApiKeyService service = new AgentApiKeyService(repository, tenantEmpresaValidationService);
 
         CountDownLatch findBarrier = new CountDownLatch(2);
         AtomicLong keyIdSequence = new AtomicLong(200L);
@@ -88,7 +92,7 @@ class AgentApiKeyServiceConcurrencyTest {
 
     @Test
     void revokeKey_concorrente_apenasUmaRevogacao() throws Exception {
-        AgentApiKeyService service = new AgentApiKeyService(repository);
+        AgentApiKeyService service = new AgentApiKeyService(repository, tenantEmpresaValidationService);
 
         CountDownLatch findBarrier = new CountDownLatch(2);
         AtomicBoolean currentActive = new AtomicBoolean(true);

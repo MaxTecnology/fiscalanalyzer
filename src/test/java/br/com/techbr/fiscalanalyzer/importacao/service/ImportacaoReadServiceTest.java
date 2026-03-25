@@ -1,6 +1,8 @@
 package br.com.techbr.fiscalanalyzer.importacao.service;
 
 import br.com.techbr.fiscalanalyzer.importacao.dto.ImportacaoDetailResponse;
+import br.com.techbr.fiscalanalyzer.identity.security.UserAuthContext;
+import br.com.techbr.fiscalanalyzer.identity.service.UserAuthorizationService;
 import br.com.techbr.fiscalanalyzer.importacao.model.ImportItemStatus;
 import br.com.techbr.fiscalanalyzer.importacao.model.Importacao;
 import br.com.techbr.fiscalanalyzer.importacao.model.ImportacaoStatus;
@@ -23,7 +25,8 @@ class ImportacaoReadServiceTest {
     void getDetail_retornaContadores() {
         ImportacaoRepository importacaoRepository = Mockito.mock(ImportacaoRepository.class);
         ImportItemRepository importItemRepository = Mockito.mock(ImportItemRepository.class);
-        ImportacaoReadService service = new ImportacaoReadService(importacaoRepository, importItemRepository);
+        UserAuthorizationService userAuthorizationService = Mockito.mock(UserAuthorizationService.class);
+        ImportacaoReadService service = new ImportacaoReadService(importacaoRepository, importItemRepository, userAuthorizationService);
 
         Importacao imp = new Importacao();
         ReflectionTestUtils.setField(imp, "id", 1L);
@@ -40,7 +43,7 @@ class ImportacaoReadServiceTest {
                 new StatusCount(ImportItemStatus.FALHA_PARSE, 2)
         ));
 
-        ImportacaoDetailResponse response = service.getDetail(1L);
+        ImportacaoDetailResponse response = service.getDetail(1L, new UserAuthContext(7L, "leitor@empresa.com", List.of("LEITOR")));
         assertEquals(5L, response.totalItems());
         assertEquals(2, response.statusCounts().size());
     }

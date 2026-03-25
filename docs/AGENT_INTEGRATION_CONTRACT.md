@@ -3,7 +3,7 @@
 Este documento é a fonte de verdade para tudo que impacta o **Agente C#**.
 Sempre que o backend mudar algo que afete integração, atualizar este arquivo.
 
-Data da última atualização: **2026-03-24**
+Data da última atualização: **2026-03-25**
 Versão do contrato: **v1.5**
 
 ---

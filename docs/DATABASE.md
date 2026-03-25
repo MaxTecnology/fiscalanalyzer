@@ -47,3 +47,50 @@
 - Se houver ingestão por manifesto, o manifesto é a fonte para criação de `import_item`.
 - Para reduzir custo de storage, persistir no banco os metadados necessários para reprocesso
   sem depender de `LIST` massivo no bucket.
+
+## Identidade e governança (decisão 2026-03-25)
+- `tenant` e `empresa` são entidades mestre internas do FiscalAnalyzer.
+- `tenant_id` e `empresa_id` não podem existir “soltos” nas tabelas de domínio.
+- Novas evoluções devem priorizar FK composta `(empresa_id, tenant_id) -> empresa(id, tenant_id)`.
+- Não criar ApiKey/importação/documento para tenant/empresa inexistente ou inativo.
+- Plano completo e checklist:
+    - `TENANT_EMPRESA_USUARIO_DECISION.md`
+    - `IDENTITY_FOUNDATION_CHECKLIST.md`
+
+## Fundação de identidade implementada (V17)
+- Tabelas criadas:
+    - `tenant`
+    - `empresa`
+    - `app_user`
+    - `app_role`
+    - `app_user_role`
+    - `app_user_empresa`
+- Roles base inseridas via migration:
+    - `ADMIN`
+    - `OPERADOR`
+    - `LEITOR`
+- Unicidade adicionada:
+    - `empresa (tenant_id, cnpj)`
+    - `app_role (codigo)`
+    - `app_user lower(email)` (case-insensitive)
+
+## Regra de validação de domínio (backend)
+- Rotas críticas validam tenant/empresa antes de processar:
+    - upload ZIP
+    - manifesto
+    - leitura de documento por access key
+    - gestão e autenticação de Agent ApiKey
+- Semântica de erro:
+    - inexistente: `422 UNPROCESSABLE_ENTITY`
+    - inativo: `403 AUTH_FORBIDDEN`
+
+## Integridade referencial em domínio existente (V18)
+- FKs compostas adicionadas em:
+    - `importacao`
+    - `fiscal_document`
+    - `fiscal_document_registry`
+    - `agent_api_key`
+    - `agent_upload_audit`
+    - `agent_auth_audit`
+- Referência usada: `(empresa_id, tenant_id) -> empresa(id, tenant_id)`.
+- Migração usa `NOT VALID` para não quebrar ambientes legados; quando não há órfãos a validação é feita automaticamente.

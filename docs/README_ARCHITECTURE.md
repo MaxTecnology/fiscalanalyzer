@@ -148,6 +148,20 @@ Características:
 
 ---
 
+### 2.9 Identidade Interna (Tenant/Empresa)
+Responsável por:
+- manter cadastro canônico de `tenant` e `empresa`
+- validar escopo ativo/inativo antes de upload/manifesto/consulta/doc e gestão de ApiKey
+- servir de base para RBAC de usuários locais nas próximas fases
+
+Status atual:
+- schema base implementado via migration `V17`
+- validação de tenant/empresa ativa aplicada nas rotas críticas do core
+- FKs compostas em tabelas de domínio aplicadas via `V18` (com estratégia de transição para legado)
+- endpoints administrativos disponíveis para cadastro de tenant/empresa/usuário local e vínculos de acesso
+
+---
+
 ## 3. Fluxo principal de importação
 
 ### 3.1 Upload
@@ -204,7 +218,9 @@ A estrutura do código segue o domínio do problema:
 
 br.com.techbr.fiscalanalyzer
 ├── config # Configurações Spring, fila, storage, datasource
+├── agent # Endpoints/segurança/auditoria para agente de ingestão
 ├── common # Enums, value objects, exceções comuns
+├── identity # Cadastro interno de tenant/empresa/usuário local
 ├── importacao # Upload e controle de importações
 ├── xml # Parser e modelos canônicos de XML
 ├── documento # Persistência de documentos fiscais
@@ -292,33 +308,50 @@ Fases:
 - Fase 2 — Worker de extração (ZIP streaming, `import_item`, idempotência) — **CONCLUÍDA**
 - Fase 3 — Worker de parsing (streaming XML, `fiscal_document`, registry, AFTER_COMMIT) — **CONCLUÍDA**
 - Fase 4 — Read Model e endpoints de consulta (`/imports`, `/imports/{id}/items`, `/documents/{accessKey}`) — **CONCLUÍDA**
-- Fase 5 — Hardening para alto volume (1M+ XML): ingestão por agente/manifests, tuning de concorrência, custo/throughput e operação — **EM ANDAMENTO**
+- Fase 5 — Hardening para alto volume (1M+ XML): ingestão por agente/manifests, tuning de concorrência, custo/throughput e operação — **CONCLUÍDA (BACKEND CORE)**
+- Fase 6 — Fundação de identidade (`tenant`, `empresa`, `usuário` local, FKs compostas, APIs admin) — **CONCLUÍDA**
+- Fase 7 — Autenticação de usuário (JWT/RBAC) + consolidação operacional para front/agent — **EM ANDAMENTO**
 
 Status atual:
-- Estamos na **Fase 5**.
-- Não avançar para novas funcionalidades fiscais antes de estabilizar throughput, retry/DLQ, idempotência e observabilidade do pipeline.
+- Estamos em **Fase 7**.
+- Não avançar para novas funcionalidades fiscais antes de concluir o pacote de operação/admin (agent + front + auth de usuário).
 - Baseline local já medido no pipeline atual (arquivo com 50 XML): ver `INGESTION_HIGH_VOLUME.md`.
 - Tuning inicial de concorrência/prefetch do Rabbit já aplicado; manter ajustes guiados por medição.
 - DLQ consumers implementados (`ParseDlqConsumer`, `ExtractDlqConsumer`) via `DlqHandlerService`.
-- Agente de ingestão (C#) documentado em `AGENT_ARCHITECTURE.md` — implementação pendente.
+- Agente de ingestão (C#) documentado em `AGENT_ARCHITECTURE.md` — integração backend pronta; implementação evolui no projeto do agente.
 - Endpoint `POST /imports/manifest` implementado (cria `importacao` MANIFEST + `import_item` em batch e publica parse AFTER_COMMIT).
 - Worker de parse suporta dois modos: ZIP (`zipEntryName`) e XML direto no storage (`storage_object_key`).
 - Segurança backend↔agent (Fases 1-3) implementada: `POST /agent/session`, `POST /agent/upload-url`, `POST /imports/manifest` protegido com Bearer ApiKey + cross-check tenant/empresa.
-- Gestão de ApiKey ativa via rotas admin (`/admin/empresas/{empresaId}/agent-keys`, incluindo `rotate`), protegidas por `X-Admin-Token`.
+- Gestão de ApiKey ativa via rotas admin (`/admin/empresas/{empresaId}/agent-keys`, incluindo `rotate`), protegidas por JWT `ADMIN`.
+- APIs administrativas de identidade ativas: `tenant`, `empresa`, `usuário` local e vínculos de acesso.
+- Fase 7.1 avançada: autenticação local de usuário disponível em `POST /auth/login` com JWT e endpoint `GET /auth/me`.
+- Bootstrap inicial disponível em `POST /auth/bootstrap-admin` (protegido por `X-Bootstrap-Token`) para ambiente sem usuários.
+- Rotas `/admin/**` exigem JWT de usuário com role `ADMIN` (sem fallback legado).
+- Fase 7.2 iniciada: RBAC mínimo ativo por role + escopo de empresa nas rotas de operação:
+  - escrita: `POST /imports/upload` (roles `ADMIN`/`OPERADOR`)
+  - leitura: `GET /imports/{id}`, `GET /imports/{id}/items`, `GET /documents/{accessKey}` (roles `ADMIN`/`OPERADOR`/`LEITOR`)
+  - usuários não-admin precisam de vínculo explícito em `app_user_empresa` para `tenantId/empresaId`.
 - Hardening operacional ativo: Redis para rate-limit/lockout distribuído, auditoria dedicada e retenção automática dos eventos de segurança.
+- Decisão arquitetural de identidade aprovada em `TENANT_EMPRESA_USUARIO_DECISION.md`; implementação guiada por `IDENTITY_FOUNDATION_CHECKLIST.md`.
 
 ---
 
 ## 9. Como usar este documento com IA (Codex)
 
 Antes de implementar qualquer código:
-1. Ler este arquivo (`README_ARCHITECTURE.md`)
-2. Ler o `DOMAIN.md`
-3. Se houver impacto no agente, ler/atualizar `AGENT_INTEGRATION_CONTRACT.md`
-4. Implementar apenas o escopo solicitado
-5. Respeitar responsabilidades dos pacotes
-6. Para chamadas manuais de API, usar `FiscalAnalyzer.routes.http`
-7. Para deploy em Dockploy, seguir `DEPLOY_DOCKPLOY.md`
-8. Para segurança backend↔agent, acompanhar `BACKEND_AGENT_SECURITY_PLAN.md` e `BACKEND_AGENT_SECURITY_CHECKLIST.md`
+1. Ler `DOCS_INDEX.md` (mapa oficial da documentação)
+2. Ler este arquivo (`README_ARCHITECTURE.md`)
+3. Ler `DOMAIN.md` e `DATABASE.md`
+4. Se houver impacto no agente, ler/atualizar `AGENT_INTEGRATION_CONTRACT.md`
+5. Se houver impacto em fase futura (agent/front), alinhar com `NEXT_STEPS_AGENT_FRONT.md`
+6. Implementar apenas o escopo solicitado
+7. Respeitar responsabilidades dos pacotes
+8. Para chamadas manuais de API, usar `FiscalAnalyzer.routes.http`
+9. Para deploy em Dockploy, seguir `DEPLOY_DOCKPLOY.md`
+10. Para segurança backend↔agent, acompanhar `BACKEND_AGENT_SECURITY_PLAN.md` e `BACKEND_AGENT_SECURITY_CHECKLIST.md`
+11. Para decisão de cadastro mestre (`tenant/empresa/usuário`), acompanhar `TENANT_EMPRESA_USUARIO_DECISION.md`
+12. Para execução por fases da fundação de identidade, acompanhar `IDENTITY_FOUNDATION_CHECKLIST.md`
+13. Para validação manual fim-a-fim (identidade + agent + pipeline), seguir `SMOKE_TEST_HOMOLOG_IDENTITY_PIPELINE.md`
+14. Para handoff direto às equipes Agent e Front, usar `HANDOFF_AGENT_FRONT.md`
 
 Isso garante consistência e evita código fora do padrão arquitetural.

@@ -3,6 +3,9 @@ package br.com.techbr.fiscalanalyzer.documento.controller;
 import br.com.techbr.fiscalanalyzer.common.exception.ApiExceptionHandler;
 import br.com.techbr.fiscalanalyzer.documento.dto.FiscalDocumentResponse;
 import br.com.techbr.fiscalanalyzer.documento.service.DocumentQueryService;
+import br.com.techbr.fiscalanalyzer.identity.security.UserAuthContext;
+import br.com.techbr.fiscalanalyzer.identity.security.UserAuthRequestContext;
+import br.com.techbr.fiscalanalyzer.identity.service.UserAuthorizationService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.test.web.servlet.MockMvc;
@@ -21,11 +24,13 @@ class DocumentControllerTest {
 
     private MockMvc mockMvc;
     private DocumentQueryService service;
+    private UserAuthorizationService userAuthorizationService;
 
     @BeforeEach
     void setUp() {
         service = mock(DocumentQueryService.class);
-        DocumentController controller = new DocumentController(service);
+        userAuthorizationService = mock(UserAuthorizationService.class);
+        DocumentController controller = new DocumentController(service, userAuthorizationService);
         mockMvc = MockMvcBuilders.standaloneSetup(controller)
                 .setControllerAdvice(new ApiExceptionHandler())
                 .build();
@@ -49,7 +54,9 @@ class DocumentControllerTest {
 
         mockMvc.perform(get("/documents/35191111111111111111550010000000011000000010")
                         .param("tenantId", "1")
-                        .param("empresaId", "2"))
+                        .param("empresaId", "2")
+                        .requestAttr(UserAuthRequestContext.REQUEST_ATTRIBUTE,
+                                new UserAuthContext(7L, "leitor@empresa.com", java.util.List.of("LEITOR"))))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.accessKey").value("35191111111111111111550010000000011000000010"))
                 .andExpect(jsonPath("$.model").value(55));

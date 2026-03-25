@@ -6,6 +6,8 @@ import br.com.techbr.fiscalanalyzer.agent.repository.AgentApiKeyRepository;
 import br.com.techbr.fiscalanalyzer.common.exception.ForbiddenException;
 import br.com.techbr.fiscalanalyzer.common.exception.UnauthorizedException;
 import br.com.techbr.fiscalanalyzer.common.exception.ValidationException;
+import br.com.techbr.fiscalanalyzer.common.exception.UnprocessableEntityException;
+import br.com.techbr.fiscalanalyzer.identity.service.TenantEmpresaValidationService;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
@@ -28,9 +30,12 @@ class AgentApiKeyServiceTest {
     @Mock
     private AgentApiKeyRepository repository;
 
+    @Mock
+    private TenantEmpresaValidationService tenantEmpresaValidationService;
+
     @Test
     void createKey_geraChaveHashESalva() {
-        AgentApiKeyService service = new AgentApiKeyService(repository);
+        AgentApiKeyService service = new AgentApiKeyService(repository, tenantEmpresaValidationService);
         when(repository.save(any(AgentApiKey.class))).thenAnswer(invocation -> {
             AgentApiKey entity = invocation.getArgument(0);
             ReflectionTestUtils.setField(entity, "id", 10L);
@@ -43,11 +48,23 @@ class AgentApiKeyServiceTest {
         assertTrue(response.apiKey().startsWith("fa_live_"));
         assertEquals(10L, response.id());
         verify(repository).save(any(AgentApiKey.class));
+        verify(tenantEmpresaValidationService).validateAtivo(1L, 2L);
+    }
+
+    @Test
+    void createKey_quandoEmpresaNaoExiste_lanca422() {
+        AgentApiKeyService service = new AgentApiKeyService(repository, tenantEmpresaValidationService);
+        doThrow(new UnprocessableEntityException("empresa nao encontrada"))
+                .when(tenantEmpresaValidationService).validateAtivo(1L, 2L);
+
+        assertThrows(UnprocessableEntityException.class,
+                () -> service.createKey(1L, 2L, new AdminCreateAgentKeyRequest("srv", "admin")));
+        verifyNoInteractions(repository);
     }
 
     @Test
     void authenticate_validaHashERetornaContexto() throws Exception {
-        AgentApiKeyService service = new AgentApiKeyService(repository);
+        AgentApiKeyService service = new AgentApiKeyService(repository, tenantEmpresaValidationService);
         String rawKey = "fa_live_abc123";
         String hash = sha256(rawKey);
 
@@ -69,11 +86,12 @@ class AgentApiKeyServiceTest {
         assertEquals(88L, ctx.empresaId());
         verify(repository).findByKeyHash(hash);
         verify(repository, atLeastOnce()).save(any(AgentApiKey.class));
+        verify(tenantEmpresaValidationService).validateAtivo(99L, 88L);
     }
 
     @Test
     void authenticate_invalida_lancaUnauthorized() {
-        AgentApiKeyService service = new AgentApiKeyService(repository);
+        AgentApiKeyService service = new AgentApiKeyService(repository, tenantEmpresaValidationService);
         when(repository.findByKeyHash(any())).thenReturn(Optional.empty());
 
         assertThrows(UnauthorizedException.class, () -> service.authenticate("fa_live_x"));
@@ -81,7 +99,7 @@ class AgentApiKeyServiceTest {
 
     @Test
     void authenticate_revogada_lancaForbidden() throws Exception {
-        AgentApiKeyService service = new AgentApiKeyService(repository);
+        AgentApiKeyService service = new AgentApiKeyService(repository, tenantEmpresaValidationService);
         String rawKey = "fa_live_abc123";
         String hash = sha256(rawKey);
 
@@ -99,7 +117,7 @@ class AgentApiKeyServiceTest {
 
     @Test
     void revokeKey_deOutroTenant_lancaForbidden() {
-        AgentApiKeyService service = new AgentApiKeyService(repository);
+        AgentApiKeyService service = new AgentApiKeyService(repository, tenantEmpresaValidationService);
         AgentApiKey key = new AgentApiKey();
         ReflectionTestUtils.setField(key, "id", 77L);
         key.setTenantId(1L);
@@ -113,7 +131,7 @@ class AgentApiKeyServiceTest {
 
     @Test
     void revokeKey_sucesso() {
-        AgentApiKeyService service = new AgentApiKeyService(repository);
+        AgentApiKeyService service = new AgentApiKeyService(repository, tenantEmpresaValidationService);
         AgentApiKey key = new AgentApiKey();
         ReflectionTestUtils.setField(key, "id", 77L);
         key.setTenantId(1L);
@@ -129,7 +147,7 @@ class AgentApiKeyServiceTest {
 
     @Test
     void revokeKey_jaRevogada_lancaValidation() {
-        AgentApiKeyService service = new AgentApiKeyService(repository);
+        AgentApiKeyService service = new AgentApiKeyService(repository, tenantEmpresaValidationService);
         AgentApiKey key = new AgentApiKey();
         ReflectionTestUtils.setField(key, "id", 77L);
         key.setTenantId(1L);
@@ -144,7 +162,7 @@ class AgentApiKeyServiceTest {
 
     @Test
     void rotateKey_semRevogarAntiga_mantemAmbasAtivas() {
-        AgentApiKeyService service = new AgentApiKeyService(repository);
+        AgentApiKeyService service = new AgentApiKeyService(repository, tenantEmpresaValidationService);
 
         AgentApiKey current = new AgentApiKey();
         ReflectionTestUtils.setField(current, "id", 77L);
@@ -171,7 +189,7 @@ class AgentApiKeyServiceTest {
 
     @Test
     void rotateKey_comRevogacao_desativaAntiga() {
-        AgentApiKeyService service = new AgentApiKeyService(repository);
+        AgentApiKeyService service = new AgentApiKeyService(repository, tenantEmpresaValidationService);
 
         AgentApiKey current = new AgentApiKey();
         ReflectionTestUtils.setField(current, "id", 77L);
@@ -197,7 +215,7 @@ class AgentApiKeyServiceTest {
 
     @Test
     void rotateKey_comRevogacaoParalela_lancaValidation() {
-        AgentApiKeyService service = new AgentApiKeyService(repository);
+        AgentApiKeyService service = new AgentApiKeyService(repository, tenantEmpresaValidationService);
 
         AgentApiKey current = new AgentApiKey();
         ReflectionTestUtils.setField(current, "id", 77L);

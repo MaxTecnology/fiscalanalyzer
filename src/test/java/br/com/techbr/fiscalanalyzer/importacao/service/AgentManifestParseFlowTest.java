@@ -18,6 +18,7 @@ import br.com.techbr.fiscalanalyzer.importacao.model.Importacao;
 import br.com.techbr.fiscalanalyzer.importacao.model.ImportacaoStatus;
 import br.com.techbr.fiscalanalyzer.importacao.repository.ImportItemRepository;
 import br.com.techbr.fiscalanalyzer.importacao.repository.ImportacaoRepository;
+import br.com.techbr.fiscalanalyzer.identity.service.TenantEmpresaValidationService;
 import br.com.techbr.fiscalanalyzer.item.repository.FiscalItemRepository;
 import br.com.techbr.fiscalanalyzer.queue.message.ParseXmlMessage;
 import br.com.techbr.fiscalanalyzer.queue.producer.ExtractZipProducer;
@@ -63,6 +64,7 @@ class AgentManifestParseFlowTest {
         FiscalDocumentRegistryRepository registryRepository = mock(FiscalDocumentRegistryRepository.class);
         FiscalItemRepository fiscalItemRepository = mock(FiscalItemRepository.class);
         ExtractZipProducer extractZipProducer = mock(ExtractZipProducer.class);
+        TenantEmpresaValidationService tenantEmpresaValidationService = mock(TenantEmpresaValidationService.class);
 
         AgentUploadUrlService uploadUrlService = new AgentUploadUrlService(storageService, auditService, 900, 20L * 1024 * 1024);
         List<Object> publishedEvents = new ArrayList<>();
@@ -73,6 +75,7 @@ class AgentManifestParseFlowTest {
                 storageService,
                 extractZipProducer,
                 eventPublisher,
+                tenantEmpresaValidationService,
                 DataSize.ofMegabytes(100),
                 "fiscal-raw"
         );

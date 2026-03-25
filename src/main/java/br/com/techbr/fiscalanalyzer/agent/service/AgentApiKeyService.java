@@ -8,6 +8,7 @@ import br.com.techbr.fiscalanalyzer.agent.security.AgentAuthContext;
 import br.com.techbr.fiscalanalyzer.common.exception.ForbiddenException;
 import br.com.techbr.fiscalanalyzer.common.exception.UnauthorizedException;
 import br.com.techbr.fiscalanalyzer.common.exception.ValidationException;
+import br.com.techbr.fiscalanalyzer.identity.service.TenantEmpresaValidationService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -29,10 +30,13 @@ public class AgentApiKeyService {
     private static final int PREFIX_SIZE = 12;
 
     private final AgentApiKeyRepository repository;
+    private final TenantEmpresaValidationService tenantEmpresaValidationService;
     private final SecureRandom secureRandom = new SecureRandom();
 
-    public AgentApiKeyService(AgentApiKeyRepository repository) {
+    public AgentApiKeyService(AgentApiKeyRepository repository,
+                              TenantEmpresaValidationService tenantEmpresaValidationService) {
         this.repository = repository;
+        this.tenantEmpresaValidationService = tenantEmpresaValidationService;
     }
 
     @Transactional
@@ -40,6 +44,7 @@ public class AgentApiKeyService {
         if (tenantId == null || tenantId <= 0 || empresaId == null || empresaId <= 0) {
             throw new ValidationException("tenantId e empresaId sao obrigatorios");
         }
+        tenantEmpresaValidationService.validateAtivo(tenantId, empresaId);
 
         String plainKey = generateApiKey();
         String hash = sha256Hex(plainKey);
@@ -63,6 +68,7 @@ public class AgentApiKeyService {
         if (tenantId == null || tenantId <= 0 || empresaId == null || empresaId <= 0) {
             throw new ValidationException("tenantId e empresaId sao obrigatorios");
         }
+        tenantEmpresaValidationService.validateAtivo(tenantId, empresaId);
         return repository.findByTenantIdAndEmpresaIdOrderByCriadoAtDesc(tenantId, empresaId).stream()
                 .map(entity -> toResponse(entity, null))
                 .toList();
@@ -73,6 +79,7 @@ public class AgentApiKeyService {
         if (tenantId == null || tenantId <= 0 || empresaId == null || empresaId <= 0 || keyId == null || keyId <= 0) {
             throw new ValidationException("tenantId, empresaId e keyId sao obrigatorios");
         }
+        tenantEmpresaValidationService.validateAtivo(tenantId, empresaId);
         AgentApiKey key = repository.findById(keyId)
                 .orElseThrow(() -> new ValidationException("AgentApiKey nao encontrada: " + keyId));
         if (!tenantId.equals(key.getTenantId()) || !empresaId.equals(key.getEmpresaId())) {
@@ -93,6 +100,7 @@ public class AgentApiKeyService {
         if (tenantId == null || tenantId <= 0 || empresaId == null || empresaId <= 0 || currentKeyId == null || currentKeyId <= 0) {
             throw new ValidationException("tenantId, empresaId e currentKeyId sao obrigatorios");
         }
+        tenantEmpresaValidationService.validateAtivo(tenantId, empresaId);
 
         AgentApiKey current = repository.findById(currentKeyId)
                 .orElseThrow(() -> new ValidationException("AgentApiKey nao encontrada: " + currentKeyId));
@@ -131,6 +139,8 @@ public class AgentApiKeyService {
         if (!Boolean.TRUE.equals(key.getAtivo()) || key.getRevogadoAt() != null) {
             throw new ForbiddenException("ApiKey revogada ou inativa");
         }
+
+        tenantEmpresaValidationService.validateAtivo(key.getTenantId(), key.getEmpresaId());
 
         Instant now = Instant.now();
         Instant lastUse = key.getUltimoUsoAt();

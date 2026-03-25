@@ -1,8 +1,7 @@
 ### FiscalAnalyzer - HTTP Routes
 ### Use com IntelliJ HTTP Client ou extensão REST Client (VS Code)
 ### Pré-requisito: API acessível (homolog/prod/local)
-### Observação: hoje NÃO existe endpoint para criar tenant/empresa.
-###             Use tenantId/empresaId já provisionados no banco/painel.
+### Roteiro guiado completo: docs/SMOKE_TEST_HOMOLOG_IDENTITY_PIPELINE.md
 
 @baseUrl = https://api.fiscalanalyzer.techbrsolucoes.com.br
 @baseUrlLocal = http://localhost:8080
@@ -11,18 +10,62 @@
 @importacaoId = 1
 @accessKey = 35191111111111111111550010000000011000000010
 @agentApiKey = fa_live_mZ2rerxKwrL8wzJ8w_t8r3hC9CvMvDsYzzW229eMjgQ
-@adminToken = m_HldoUtIiuIeUYOk4_-LowU3-tm2r95_mLhTIoiXd5LxYAqgBH-UBwHbJOiWGnp
 @agentId = desktop-agent-01
 @empresaAdminId = 99
 @agentKeyId = 1
+@tenantNome = Tenant Homologacao
+@empresaCnpj = 12345678000199
+@empresaRazaoSocial = Empresa Homologacao LTDA
+@userId = 1
+@userEmail = operador.hml@empresa.com
+@userPassword = SenhaForte123
+@userJwt = colar_jwt_login_aqui
+@bootstrapToken = change_me_one_time_bootstrap_token
 
 ###
 ### Health
 GET {{baseUrl}}/actuator/health
 
 ###
+### Auth - login usuário local (JWT)
+POST {{baseUrl}}/auth/login
+Content-Type: application/json
+
+{
+  "email": "{{userEmail}}",
+  "password": "{{userPassword}}"
+}
+
+###
+### Auth - bootstrap inicial (somente ambiente novo, 1a execução)
+POST {{baseUrl}}/auth/bootstrap-admin
+X-Bootstrap-Token: {{bootstrapToken}}
+Content-Type: application/json
+
+{
+  "tenantNome": "{{tenantNome}}",
+  "empresaRazaoSocial": "{{empresaRazaoSocial}}",
+  "empresaCnpj": "{{empresaCnpj}}",
+  "nome": "Admin Bootstrap",
+  "email": "admin@techbr.com",
+  "password": "SenhaForte123"
+}
+
+###
+### Auth - usuário autenticado (JWT)
+GET {{baseUrl}}/auth/me
+Authorization: Bearer {{userJwt}}
+
+###
+### Observação de RBAC (fase atual)
+### - Upload ZIP: ADMIN/OPERADOR (com escopo tenant/empresa).
+### - Consultas /imports e /documents: ADMIN/OPERADOR/LEITOR (com escopo tenant/empresa).
+### - ADMIN global pode operar sem vínculo explícito em app_user_empresa.
+
+###
 ### Upload ZIP (rota principal)
 POST {{baseUrl}}/imports/upload?tenantId={{tenantId}}&empresaId={{empresaId}}
+Authorization: Bearer {{userJwt}}
 Content-Type: multipart/form-data; boundary=UploadBoundary
 
 --UploadBoundary
@@ -35,6 +78,7 @@ Content-Type: application/zip
 ###
 ### Upload ZIP (alias legado)
 POST {{baseUrl}}/api/importacoes/upload?tenantId={{tenantId}}&empresaId={{empresaId}}
+Authorization: Bearer {{userJwt}}
 Content-Type: multipart/form-data; boundary=UploadBoundary
 
 --UploadBoundary
@@ -85,18 +129,22 @@ Content-Type: application/json
 ###
 ### Importação por ID
 GET {{baseUrl}}/imports/{{importacaoId}}
+Authorization: Bearer {{userJwt}}
 
 ###
 ### Itens da importação (paginado)
 GET {{baseUrl}}/imports/{{importacaoId}}/items?page=0&size=20
+Authorization: Bearer {{userJwt}}
 
 ###
 ### Itens da importação por status
 GET {{baseUrl}}/imports/{{importacaoId}}/items?status=PARSEADO&page=0&size=20
+Authorization: Bearer {{userJwt}}
 
 ###
 ### Documento por chave de acesso
 GET {{baseUrl}}/documents/{{accessKey}}?tenantId={{tenantId}}&empresaId={{empresaId}}
+Authorization: Bearer {{userJwt}}
 
 ###
 ### Cenário de erro 422 (objectKey inexistente)
@@ -195,9 +243,9 @@ Content-Type: application/json
 }
 
 ###
-### Admin - criar Agent API Key (requer X-Admin-Token)
+### Admin - criar Agent API Key (requer JWT ADMIN)
 POST {{baseUrl}}/admin/empresas/{{empresaAdminId}}/agent-keys?tenantId={{tenantId}}
-X-Admin-Token: {{adminToken}}
+Authorization: Bearer {{userJwt}}
 Content-Type: application/json
 
 {
@@ -205,23 +253,188 @@ Content-Type: application/json
 }
 
 ###
-### Admin - listar Agent API Keys (requer X-Admin-Token)
+### Admin - listar Agent API Keys (requer JWT ADMIN)
 GET {{baseUrl}}/admin/empresas/{{empresaAdminId}}/agent-keys?tenantId={{tenantId}}
-X-Admin-Token: {{adminToken}}
+Authorization: Bearer {{userJwt}}
 
 ###
-### Admin - revogar Agent API Key (requer X-Admin-Token)
+### Admin - revogar Agent API Key (requer JWT ADMIN)
 DELETE {{baseUrl}}/admin/empresas/{{empresaAdminId}}/agent-keys/{{agentKeyId}}?tenantId={{tenantId}}
-X-Admin-Token: {{adminToken}}
+Authorization: Bearer {{userJwt}}
 
 ###
-### Admin - rotacionar Agent API Key sem downtime (requer X-Admin-Token)
+### Admin - rotacionar Agent API Key sem downtime (requer JWT ADMIN)
 ### `revokeOld=false` mantém a chave antiga ativa durante transição do agente
 POST {{baseUrl}}/admin/empresas/{{empresaAdminId}}/agent-keys/{{agentKeyId}}/rotate?tenantId={{tenantId}}&revokeOld=false
-X-Admin-Token: {{adminToken}}
+Authorization: Bearer {{userJwt}}
 Content-Type: application/json
 
 {
   "descricao": "rotacao sem downtime",
   "criadoPor": "admin"
 }
+
+###
+### -----------------------------------------------------------------
+### IDENTIDADE (Tenant / Empresa / Usuário local)
+### -----------------------------------------------------------------
+### Observação:
+### - rotas /admin/** requerem JWT de usuário com role ADMIN.
+
+###
+### Admin - criar tenant
+POST {{baseUrl}}/admin/tenants
+Authorization: Bearer {{userJwt}}
+Content-Type: application/json
+
+{
+  "nome": "{{tenantNome}}"
+}
+
+###
+### Admin - listar tenants
+GET {{baseUrl}}/admin/tenants
+Authorization: Bearer {{userJwt}}
+
+###
+### Admin - listar tenants por status
+GET {{baseUrl}}/admin/tenants?status=ATIVO
+Authorization: Bearer {{userJwt}}
+
+###
+### Admin - detalhar tenant
+GET {{baseUrl}}/admin/tenants/{{tenantId}}
+Authorization: Bearer {{userJwt}}
+
+###
+### Admin - inativar tenant
+PATCH {{baseUrl}}/admin/tenants/{{tenantId}}/status
+Authorization: Bearer {{userJwt}}
+Content-Type: application/json
+
+{
+  "status": "INATIVO"
+}
+
+###
+### Admin - reativar tenant
+PATCH {{baseUrl}}/admin/tenants/{{tenantId}}/status
+Authorization: Bearer {{userJwt}}
+Content-Type: application/json
+
+{
+  "status": "ATIVO"
+}
+
+###
+### Admin - criar empresa dentro do tenant
+POST {{baseUrl}}/admin/tenants/{{tenantId}}/empresas
+Authorization: Bearer {{userJwt}}
+Content-Type: application/json
+
+{
+  "cnpj": "{{empresaCnpj}}",
+  "razaoSocial": "{{empresaRazaoSocial}}"
+}
+
+###
+### Admin - listar empresas do tenant
+GET {{baseUrl}}/admin/tenants/{{tenantId}}/empresas
+Authorization: Bearer {{userJwt}}
+
+###
+### Admin - listar empresas ativas do tenant
+GET {{baseUrl}}/admin/tenants/{{tenantId}}/empresas?status=ATIVA
+Authorization: Bearer {{userJwt}}
+
+###
+### Admin - detalhar empresa do tenant
+GET {{baseUrl}}/admin/tenants/{{tenantId}}/empresas/{{empresaId}}
+Authorization: Bearer {{userJwt}}
+
+###
+### Admin - inativar empresa
+PATCH {{baseUrl}}/admin/tenants/{{tenantId}}/empresas/{{empresaId}}/status
+Authorization: Bearer {{userJwt}}
+Content-Type: application/json
+
+{
+  "status": "INATIVA"
+}
+
+###
+### Admin - reativar empresa
+PATCH {{baseUrl}}/admin/tenants/{{tenantId}}/empresas/{{empresaId}}/status
+Authorization: Bearer {{userJwt}}
+Content-Type: application/json
+
+{
+  "status": "ATIVA"
+}
+
+###
+### Admin - criar usuário local
+POST {{baseUrl}}/admin/users
+Authorization: Bearer {{userJwt}}
+Content-Type: application/json
+
+{
+  "nome": "Operador Homolog",
+  "email": "{{userEmail}}",
+  "password": "{{userPassword}}"
+}
+
+###
+### Admin - listar usuários locais
+GET {{baseUrl}}/admin/users
+Authorization: Bearer {{userJwt}}
+
+###
+### Admin - listar usuários ativos
+GET {{baseUrl}}/admin/users?status=ATIVO
+Authorization: Bearer {{userJwt}}
+
+###
+### Admin - detalhar usuário
+GET {{baseUrl}}/admin/users/{{userId}}
+Authorization: Bearer {{userJwt}}
+
+###
+### Admin - inativar usuário
+PATCH {{baseUrl}}/admin/users/{{userId}}/status
+Authorization: Bearer {{userJwt}}
+Content-Type: application/json
+
+{
+  "status": "INATIVO"
+}
+
+###
+### Admin - reativar usuário
+PATCH {{baseUrl}}/admin/users/{{userId}}/status
+Authorization: Bearer {{userJwt}}
+Content-Type: application/json
+
+{
+  "status": "ATIVO"
+}
+
+###
+### Admin - adicionar role ao usuário (ADMIN / OPERADOR / LEITOR)
+PUT {{baseUrl}}/admin/users/{{userId}}/roles/OPERADOR
+Authorization: Bearer {{userJwt}}
+
+###
+### Admin - remover role do usuário
+DELETE {{baseUrl}}/admin/users/{{userId}}/roles/OPERADOR
+Authorization: Bearer {{userJwt}}
+
+###
+### Admin - vincular usuário à empresa (escopo)
+PUT {{baseUrl}}/admin/users/{{userId}}/tenants/{{tenantId}}/empresas/{{empresaId}}
+Authorization: Bearer {{userJwt}}
+
+###
+### Admin - remover vínculo usuário ↔ empresa
+DELETE {{baseUrl}}/admin/users/{{userId}}/tenants/{{tenantId}}/empresas/{{empresaId}}
+Authorization: Bearer {{userJwt}}

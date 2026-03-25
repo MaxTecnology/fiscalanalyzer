@@ -1,6 +1,8 @@
 package br.com.techbr.fiscalanalyzer.importacao.controller;
 
 import br.com.techbr.fiscalanalyzer.common.exception.ApiExceptionHandler;
+import br.com.techbr.fiscalanalyzer.identity.security.UserAuthContext;
+import br.com.techbr.fiscalanalyzer.identity.security.UserAuthRequestContext;
 import br.com.techbr.fiscalanalyzer.importacao.dto.ImportacaoDetailResponse;
 import br.com.techbr.fiscalanalyzer.importacao.dto.ImportItemResponse;
 import br.com.techbr.fiscalanalyzer.importacao.dto.ImportItemStatusCountResponse;
@@ -55,9 +57,11 @@ class ImportacaoReadControllerTest {
                 2,
                 List.of(new ImportItemStatusCountResponse("PARSEADO", 2))
         );
-        when(readService.getDetail(1L)).thenReturn(response);
+        when(readService.getDetail(eq(1L), any())).thenReturn(response);
 
-        mockMvc.perform(get("/imports/1"))
+        mockMvc.perform(get("/imports/1")
+                        .requestAttr(UserAuthRequestContext.REQUEST_ATTRIBUTE,
+                                new UserAuthContext(7L, "leitor@empresa.com", List.of("LEITOR"))))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").value(1))
                 .andExpect(jsonPath("$.status").value("EXTRAIDO"))
@@ -81,12 +85,14 @@ class ImportacaoReadControllerTest {
                 Instant.now()
         );
         Page<ImportItemResponse> page = new PageImpl<>(List.of(item), org.springframework.data.domain.PageRequest.of(0, 10), 1);
-        when(readService.listItems(eq(1L), eq(ImportItemStatus.PARSEADO), any())).thenReturn(page);
+        when(readService.listItems(eq(1L), eq(ImportItemStatus.PARSEADO), any(), any())).thenReturn(page);
 
         mockMvc.perform(get("/imports/1/items")
                         .param("status", "PARSEADO")
                         .param("page", "0")
-                        .param("size", "10"))
+                        .param("size", "10")
+                        .requestAttr(UserAuthRequestContext.REQUEST_ATTRIBUTE,
+                                new UserAuthContext(7L, "leitor@empresa.com", List.of("LEITOR"))))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.content[0].id").value(10))
                 .andExpect(jsonPath("$.content[0].status").value("PARSEADO"));

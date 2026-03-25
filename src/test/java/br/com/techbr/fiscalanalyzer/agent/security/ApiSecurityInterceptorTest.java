@@ -6,12 +6,17 @@ import br.com.techbr.fiscalanalyzer.agent.model.AgentAuthAuditResult;
 import br.com.techbr.fiscalanalyzer.common.exception.ForbiddenException;
 import br.com.techbr.fiscalanalyzer.common.exception.TooManyRequestsException;
 import br.com.techbr.fiscalanalyzer.common.exception.UnauthorizedException;
+import br.com.techbr.fiscalanalyzer.identity.security.UserAuthContext;
+import br.com.techbr.fiscalanalyzer.identity.security.UserAuthRequestContext;
+import br.com.techbr.fiscalanalyzer.identity.service.IdentityAuthService;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockHttpServletResponse;
+
+import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
@@ -32,10 +37,21 @@ class ApiSecurityInterceptorTest {
     private ApiRateLimitService apiRateLimitService;
     @Mock
     private AgentAuthAuditService agentAuthAuditService;
+    @Mock
+    private IdentityAuthService identityAuthService;
+
+    private ApiSecurityInterceptor interceptor() {
+        return new ApiSecurityInterceptor(
+                agentApiKeyService,
+                apiRateLimitService,
+                agentAuthAuditService,
+                identityAuthService
+        );
+    }
 
     @Test
     void agentPath_semBearer_lancaUnauthorized() {
-        ApiSecurityInterceptor interceptor = new ApiSecurityInterceptor(agentApiKeyService, apiRateLimitService, agentAuthAuditService, "admin-secret");
+        ApiSecurityInterceptor interceptor = interceptor();
         when(apiRateLimitService.resolveRoute("/agent/session")).thenReturn("agent.session");
         MockHttpServletRequest req = new MockHttpServletRequest("POST", "/agent/session");
         MockHttpServletResponse resp = new MockHttpServletResponse();
@@ -47,7 +63,7 @@ class ApiSecurityInterceptorTest {
 
     @Test
     void agentPath_comBearer_defineContexto() {
-        ApiSecurityInterceptor interceptor = new ApiSecurityInterceptor(agentApiKeyService, apiRateLimitService, agentAuthAuditService, "admin-secret");
+        ApiSecurityInterceptor interceptor = interceptor();
         when(apiRateLimitService.resolveRoute("/agent/session")).thenReturn("agent.session");
         MockHttpServletRequest req = new MockHttpServletRequest("POST", "/agent/session");
         req.addHeader("Authorization", "Bearer fa_live_token");
@@ -66,7 +82,7 @@ class ApiSecurityInterceptorTest {
 
     @Test
     void manifestPath_comBearer_autentica() {
-        ApiSecurityInterceptor interceptor = new ApiSecurityInterceptor(agentApiKeyService, apiRateLimitService, agentAuthAuditService, "admin-secret");
+        ApiSecurityInterceptor interceptor = interceptor();
         when(apiRateLimitService.resolveRoute("/imports/manifest")).thenReturn("imports.manifest");
         MockHttpServletRequest req = new MockHttpServletRequest("POST", "/imports/manifest");
         req.addHeader("Authorization", "Bearer fa_live_token");
@@ -79,7 +95,7 @@ class ApiSecurityInterceptorTest {
 
     @Test
     void adminPath_semToken_lancaUnauthorized() {
-        ApiSecurityInterceptor interceptor = new ApiSecurityInterceptor(agentApiKeyService, apiRateLimitService, agentAuthAuditService, "admin-secret");
+        ApiSecurityInterceptor interceptor = interceptor();
         MockHttpServletRequest req = new MockHttpServletRequest("GET", "/admin/empresas/1/agent-keys");
         MockHttpServletResponse resp = new MockHttpServletResponse();
 
@@ -88,30 +104,35 @@ class ApiSecurityInterceptorTest {
     }
 
     @Test
-    void adminPath_tokenInvalido_lancaForbidden() {
-        ApiSecurityInterceptor interceptor = new ApiSecurityInterceptor(agentApiKeyService, apiRateLimitService, agentAuthAuditService, "admin-secret");
+    void adminPath_bearerInvalido_lancaForbidden() {
+        ApiSecurityInterceptor interceptor = interceptor();
         MockHttpServletRequest req = new MockHttpServletRequest("GET", "/admin/empresas/1/agent-keys");
-        req.addHeader("X-Admin-Token", "wrong");
+        req.addHeader("Authorization", "Bearer invalid-jwt");
         MockHttpServletResponse resp = new MockHttpServletResponse();
+        when(identityAuthService.authenticateAdminBearer("invalid-jwt"))
+                .thenThrow(new ForbiddenException("Acesso negado"));
 
         assertThrows(ForbiddenException.class, () -> interceptor.preHandle(req, resp, new Object()));
         verify(agentAuthAuditService).recordAdminFailure(eq("/admin/empresas/1/agent-keys"), anyString(), eq(AgentAuthAuditResult.FORBIDDEN), anyString());
     }
 
     @Test
-    void adminPath_tokenValido_libera() {
-        ApiSecurityInterceptor interceptor = new ApiSecurityInterceptor(agentApiKeyService, apiRateLimitService, agentAuthAuditService, "admin-secret");
+    void adminPath_bearerValido_libera() {
+        ApiSecurityInterceptor interceptor = interceptor();
         MockHttpServletRequest req = new MockHttpServletRequest("GET", "/admin/empresas/1/agent-keys");
-        req.addHeader("X-Admin-Token", "admin-secret");
+        req.addHeader("Authorization", "Bearer jwt-token");
         MockHttpServletResponse resp = new MockHttpServletResponse();
+        UserAuthContext context = new UserAuthContext(10L, "admin@empresa.com", List.of("ADMIN"));
+        when(identityAuthService.authenticateAdminBearer("jwt-token")).thenReturn(context);
 
         assertTrue(interceptor.preHandle(req, resp, new Object()));
+        assertSame(context, req.getAttribute(UserAuthRequestContext.REQUEST_ATTRIBUTE));
         verify(agentAuthAuditService, never()).recordAdminFailure(anyString(), anyString(), any(), anyString());
     }
 
     @Test
     void agentPath_rateLimit_lanca429() {
-        ApiSecurityInterceptor interceptor = new ApiSecurityInterceptor(agentApiKeyService, apiRateLimitService, agentAuthAuditService, "admin-secret");
+        ApiSecurityInterceptor interceptor = interceptor();
         when(apiRateLimitService.resolveRoute("/agent/session")).thenReturn("agent.session");
         MockHttpServletRequest req = new MockHttpServletRequest("POST", "/agent/session");
         MockHttpServletResponse resp = new MockHttpServletResponse();
@@ -122,5 +143,64 @@ class ApiSecurityInterceptorTest {
 
         assertThrows(TooManyRequestsException.class, () -> interceptor.preHandle(req, resp, new Object()));
         verify(agentAuthAuditService).recordAgentFailure(eq("agent.session"), isNull(), anyString(), eq(AgentAuthAuditResult.RATE_LIMITED), anyString());
+    }
+
+    @Test
+    void adminPath_bearerJwtValido_libera() {
+        ApiSecurityInterceptor interceptor = interceptor();
+        MockHttpServletRequest req = new MockHttpServletRequest("GET", "/admin/tenants");
+        req.addHeader("Authorization", "Bearer jwt-token");
+        MockHttpServletResponse resp = new MockHttpServletResponse();
+        UserAuthContext context = new UserAuthContext(10L, "admin@empresa.com", List.of("ADMIN"));
+        when(identityAuthService.authenticateAdminBearer("jwt-token")).thenReturn(context);
+
+        assertTrue(interceptor.preHandle(req, resp, new Object()));
+        assertSame(context, req.getAttribute(UserAuthRequestContext.REQUEST_ATTRIBUTE));
+        verify(agentAuthAuditService, never()).recordAdminFailure(anyString(), anyString(), any(), anyString());
+    }
+
+    @Test
+    void authMe_bearerJwtValido_defineContexto() {
+        ApiSecurityInterceptor interceptor = interceptor();
+        MockHttpServletRequest req = new MockHttpServletRequest("GET", "/auth/me");
+        req.addHeader("Authorization", "Bearer jwt-token");
+        MockHttpServletResponse resp = new MockHttpServletResponse();
+        UserAuthContext context = new UserAuthContext(7L, "user@empresa.com", List.of("OPERADOR"));
+        when(identityAuthService.authenticateUserBearer("jwt-token")).thenReturn(context);
+
+        assertTrue(interceptor.preHandle(req, resp, new Object()));
+        assertSame(context, req.getAttribute(UserAuthRequestContext.REQUEST_ATTRIBUTE));
+    }
+
+    @Test
+    void importsRead_semBearer_lancaUnauthorized() {
+        ApiSecurityInterceptor interceptor = interceptor();
+        MockHttpServletRequest req = new MockHttpServletRequest("GET", "/imports/1");
+        MockHttpServletResponse resp = new MockHttpServletResponse();
+
+        assertThrows(UnauthorizedException.class, () -> interceptor.preHandle(req, resp, new Object()));
+    }
+
+    @Test
+    void importsUpload_bearerJwtValido_defineContexto() {
+        ApiSecurityInterceptor interceptor = interceptor();
+        MockHttpServletRequest req = new MockHttpServletRequest("POST", "/imports/upload");
+        req.addHeader("Authorization", "Bearer jwt-token");
+        MockHttpServletResponse resp = new MockHttpServletResponse();
+        UserAuthContext context = new UserAuthContext(9L, "operador@empresa.com", List.of("OPERADOR"));
+        when(identityAuthService.authenticateUserBearer("jwt-token")).thenReturn(context);
+
+        assertTrue(interceptor.preHandle(req, resp, new Object()));
+        assertSame(context, req.getAttribute(UserAuthRequestContext.REQUEST_ATTRIBUTE));
+    }
+
+    @Test
+    void adminPath_xAdminToken_semBearer_lancaUnauthorized() {
+        ApiSecurityInterceptor interceptor = interceptor();
+        MockHttpServletRequest req = new MockHttpServletRequest("GET", "/admin/tenants");
+        req.addHeader("X-Admin-Token", "admin-secret");
+        MockHttpServletResponse resp = new MockHttpServletResponse();
+
+        assertThrows(UnauthorizedException.class, () -> interceptor.preHandle(req, resp, new Object()));
     }
 }

@@ -1,6 +1,6 @@
 # Checklist de Execução — Segurança Backend ↔ Agent
 
-Status: **fonte operacional de acompanhamento**  
+Status: **Fases 1-3 concluídas; manter como checklist de regressão operacional**  
 Regra: marcar somente quando código + testes + documentação estiverem concluídos.
 
 ---

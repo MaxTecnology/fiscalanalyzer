@@ -1,7 +1,7 @@
 # Plano de Segurança — Backend ↔ Agent (v2)
 
-Data: 2026-03-24  
-Status: **Em execução** (Fase 1, 2 e 3 implementadas no escopo atual; pendente apenas autenticação admin final com RBAC)
+Data: 2026-03-25  
+Status: **Backend estabilizado nas Fases 1-3 e integrado à identidade local (JWT/RBAC)**
 
 ---
 
@@ -30,7 +30,8 @@ Hoje:
 - retenção automática das tabelas de auditoria por job agendado (`AgentAuditCleanupService`)
 
 Risco residual atual:
-- falta de RBAC final para endpoints admin (token estático ainda em uso)
+- rotação segura de segredos (`APP_SECURITY_BOOTSTRAP_TOKEN`, `APP_SECURITY_JWT_SECRET`) por ambiente
+- observabilidade contínua de lockout/rate-limit em produção
 
 ---
 
@@ -240,20 +241,21 @@ Ao final de cada fase, atualizar:
 
 ---
 
-## 10. Decisões pendentes (abrir antes de codar)
+## 10. Decisões pendentes (fase 7+)
 
-- padrão final de autenticação admin (JWT/OIDC/API interna)
-- política de expiração de ApiKey (eterna vs expiração periódica)
-- granularidade de permissão por chave (somente uma empresa vs multi-unidade)
-- estratégia de compatibilidade para agentes antigos sem bearer
+- política de expiração de ApiKey (sem expiração no baseline vs expiração periódica opcional)
+- granularidade de permissão por chave (empresa única atual vs chaves multi-empresa no futuro)
+- estratégia de transição para remoção definitiva de `tenantId/empresaId` do body do manifesto
+- evolução para OIDC/SSO no front administrativo
 
 ---
 
 ## 11. Resumo executivo
 
-Ordem recomendada:
-1. Fase 1 imediatamente (auth + key management + manifest protegido)
-2. Fase 2 em seguida (pre-signed upload)
-3. Fase 3 para operação madura em escala
+Ordem recomendada daqui em diante:
+1. estabilizar rollout front administrativo sobre as APIs JWT/RBAC já ativas;
+2. manter contrato do agent estável durante homologação e carga real;
+3. medir e ajustar limites de rate-limit/lockout por perfil de cliente;
+4. planejar evolução de sessão (refresh token) e/ou OIDC.
 
-Sem Fase 1, o risco de segurança continua alto mesmo com pipeline funcional.
+O backend já está pronto para operação de ingestão com governança de acesso administrativa via usuário local + JWT.

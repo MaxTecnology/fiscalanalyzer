@@ -14,6 +14,7 @@ import br.com.techbr.fiscalanalyzer.importacao.model.ImportacaoSourceType;
 import br.com.techbr.fiscalanalyzer.importacao.model.ImportacaoStatus;
 import br.com.techbr.fiscalanalyzer.importacao.repository.ImportItemRepository;
 import br.com.techbr.fiscalanalyzer.importacao.repository.ImportacaoRepository;
+import br.com.techbr.fiscalanalyzer.identity.service.TenantEmpresaValidationService;
 import br.com.techbr.fiscalanalyzer.queue.message.ExtractZipMessage;
 import br.com.techbr.fiscalanalyzer.queue.producer.ExtractZipProducer;
 import br.com.techbr.fiscalanalyzer.storage.service.StorageService;
@@ -56,6 +57,7 @@ public class ImportacaoService {
     private final StorageService storageService;
     private final ExtractZipProducer extractZipProducer;
     private final ApplicationEventPublisher eventPublisher;
+    private final TenantEmpresaValidationService tenantEmpresaValidationService;
     private final long maxZipSizeBytes;
     private final String bucket;
 
@@ -64,6 +66,7 @@ public class ImportacaoService {
                              StorageService storageService,
                              ExtractZipProducer extractZipProducer,
                              ApplicationEventPublisher eventPublisher,
+                             TenantEmpresaValidationService tenantEmpresaValidationService,
                              @Value("${app.importacao.max-zip-size}") DataSize maxZipSize,
                              @Value("${storage.s3.bucket}") String bucket) {
         this.importacaoRepository = importacaoRepository;
@@ -71,15 +74,14 @@ public class ImportacaoService {
         this.storageService = storageService;
         this.extractZipProducer = extractZipProducer;
         this.eventPublisher = eventPublisher;
+        this.tenantEmpresaValidationService = tenantEmpresaValidationService;
         this.maxZipSizeBytes = maxZipSize.toBytes();
         this.bucket = bucket;
     }
 
     @Transactional
     public Importacao criarImportacao(Long tenantId, Long empresaId, MultipartFile zipFile) {
-        if (tenantId == null || empresaId == null) {
-            throw new ValidationException("tenantId e empresaId sao obrigatorios");
-        }
+        tenantEmpresaValidationService.validateAtivo(tenantId, empresaId);
         validateZip(zipFile);
 
         String sha256 = sha256Hex(zipFile);
@@ -148,6 +150,7 @@ public class ImportacaoService {
         if (!request.tenantId().equals(authTenantId) || !request.empresaId().equals(authEmpresaId)) {
             throw new ForbiddenException("tenantId/empresaId do manifesto nao conferem com a ApiKey");
         }
+        tenantEmpresaValidationService.validateAtivo(request.tenantId(), request.empresaId());
 
         List<ManifestEntryRequest> entries = normalizeManifestEntries(request.entries());
         validateManifestObjectsExist(entries);

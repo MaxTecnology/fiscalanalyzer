@@ -13,6 +13,7 @@ import br.com.techbr.fiscalanalyzer.queue.message.ExtractZipMessage;
 import br.com.techbr.fiscalanalyzer.queue.producer.ExtractZipProducer;
 import br.com.techbr.fiscalanalyzer.importacao.repository.ImportItemRepository;
 import br.com.techbr.fiscalanalyzer.importacao.repository.ImportacaoRepository;
+import br.com.techbr.fiscalanalyzer.identity.service.TenantEmpresaValidationService;
 import br.com.techbr.fiscalanalyzer.storage.service.StorageService;
 import org.springframework.context.ApplicationEventPublisher;
 import org.junit.jupiter.api.BeforeEach;
@@ -32,6 +33,9 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -54,6 +58,9 @@ class ImportacaoServiceTest {
     @Mock
     private ApplicationEventPublisher eventPublisher;
 
+    @Mock
+    private TenantEmpresaValidationService tenantEmpresaValidationService;
+
     private ImportacaoService service;
 
     @BeforeEach
@@ -64,6 +71,7 @@ class ImportacaoServiceTest {
                 storageService,
                 extractZipProducer,
                 eventPublisher,
+                tenantEmpresaValidationService,
                 DataSize.ofMegabytes(5),
                 "fiscal-raw"
         );
@@ -114,6 +122,23 @@ class ImportacaoServiceTest {
         );
 
         assertThrows(ValidationException.class, () -> service.criarImportacao(1L, 2L, file));
+    }
+
+    @Test
+    void criarImportacao_retorna422_quandoTenantEmpresaNaoExiste() {
+        MockMultipartFile file = new MockMultipartFile(
+                "file",
+                "teste.zip",
+                "application/zip",
+                "abc".getBytes(StandardCharsets.UTF_8)
+        );
+        doThrow(new UnprocessableEntityException("empresaId nao encontrado"))
+                .when(tenantEmpresaValidationService).validateAtivo(1L, 2L);
+
+        assertThrows(UnprocessableEntityException.class, () -> service.criarImportacao(1L, 2L, file));
+        verify(tenantEmpresaValidationService).validateAtivo(1L, 2L);
+        verifyNoInteractions(storageService, extractZipProducer);
+        verify(importacaoRepository, never()).save(any(Importacao.class));
     }
 
     @Test
@@ -201,6 +226,27 @@ class ImportacaoServiceTest {
 
         assertThrows(br.com.techbr.fiscalanalyzer.common.exception.ForbiddenException.class,
                 () -> service.criarImportacaoPorManifesto(request, 1L, 2L));
+    }
+
+    @Test
+    void criarImportacaoPorManifesto_retorna403_quandoTenantOuEmpresaInativos() {
+        ManifestRequest request = new ManifestRequest(
+                99L,
+                99L,
+                java.util.List.of(new ManifestEntryRequest(
+                        "99/99/a.xml",
+                        "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+                        100L,
+                        "a.xml"
+                ))
+        );
+        doThrow(new br.com.techbr.fiscalanalyzer.common.exception.ForbiddenException("empresa inativa"))
+                .when(tenantEmpresaValidationService).validateAtivo(99L, 99L);
+
+        assertThrows(br.com.techbr.fiscalanalyzer.common.exception.ForbiddenException.class,
+                () -> service.criarImportacaoPorManifesto(request, 99L, 99L));
+        verify(tenantEmpresaValidationService).validateAtivo(99L, 99L);
+        verifyNoInteractions(storageService);
     }
 
     private String sha256Hex(String value) throws Exception {

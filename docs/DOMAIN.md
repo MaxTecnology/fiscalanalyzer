@@ -34,11 +34,15 @@ são predominantemente determinados por CFOP/CST/CSOSN/NCM e bases por item.
     - itens do documento (fiscal_item)
 - Idempotência por chave da nota (evita duplicidade).
 - Auditoria mínima: rastrear importação e arquivo origem.
+- Cadastro administrativo local de identidade:
+    - `tenant`
+    - `empresa`
+    - `app_user` + vínculos (role/empresa)
 
 ### 2.2 Fora do escopo (por enquanto)
 - Importação/validação via SPED (EFD Contribuições, ICMS/IPI etc.).
 - CT-e e outros modelos.
-- Autenticação/Autorização final (RBAC) e multi-tenant avançado.
+- Autenticação/Autorização final (RBAC) e multi-tenant avançado (em implementação por fases).
 - Cálculo final de “imposto a recuperar” como resultado persistido.
   (Por enquanto, apenas armazenamento de fatos fiscais e consultas.)
 - Publicação direta no RabbitMQ por sistemas externos (incluindo agente).
