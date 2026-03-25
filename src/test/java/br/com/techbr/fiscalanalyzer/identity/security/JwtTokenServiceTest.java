@@ -23,7 +23,7 @@ class JwtTokenServiceTest {
 
     @Test
     void issueAndValidate_roundTrip_ok() {
-        JwtTokenService service = new JwtTokenService(new ObjectMapper().findAndRegisterModules(), SECRET, 3600);
+        JwtTokenService service = new JwtTokenService(new ObjectMapper().findAndRegisterModules(), SECRET, 3600, 120);
 
         JwtTokenService.AccessToken token = service.issueAccessToken(10L, "admin@empresa.com", List.of("ADMIN"));
         JwtTokenService.JwtPrincipal principal = service.parseAndValidateAccessToken(token.token());
@@ -35,7 +35,7 @@ class JwtTokenServiceTest {
 
     @Test
     void validate_quandoAssinaturaInvalida_lancaUnauthorized() {
-        JwtTokenService service = new JwtTokenService(new ObjectMapper().findAndRegisterModules(), SECRET, 3600);
+        JwtTokenService service = new JwtTokenService(new ObjectMapper().findAndRegisterModules(), SECRET, 3600, 120);
         JwtTokenService.AccessToken token = service.issueAccessToken(10L, "admin@empresa.com", List.of("ADMIN"));
         String tampered = token.token().substring(0, token.token().length() - 2) + "aa";
 
@@ -45,15 +45,26 @@ class JwtTokenServiceTest {
     @Test
     void validate_quandoExpirado_lancaUnauthorized() throws Exception {
         ObjectMapper mapper = new ObjectMapper().findAndRegisterModules();
-        JwtTokenService service = new JwtTokenService(mapper, SECRET, 3600);
+        JwtTokenService service = new JwtTokenService(mapper, SECRET, 3600, 0);
         String expiredToken = buildToken(mapper, SECRET, Instant.now().minusSeconds(10).getEpochSecond());
 
         assertThrows(UnauthorizedException.class, () -> service.parseAndValidateAccessToken(expiredToken));
     }
 
     @Test
+    void validate_quandoDentroDoClockSkew_aceitaToken() throws Exception {
+        ObjectMapper mapper = new ObjectMapper().findAndRegisterModules();
+        JwtTokenService service = new JwtTokenService(mapper, SECRET, 3600, 120);
+        String almostExpired = buildToken(mapper, SECRET, Instant.now().minusSeconds(30).getEpochSecond());
+
+        JwtTokenService.JwtPrincipal principal = service.parseAndValidateAccessToken(almostExpired);
+
+        assertEquals(10L, principal.userId());
+    }
+
+    @Test
     void issue_quandoSecretInvalido_lancaInfraException() {
-        JwtTokenService service = new JwtTokenService(new ObjectMapper().findAndRegisterModules(), "short-secret", 3600);
+        JwtTokenService service = new JwtTokenService(new ObjectMapper().findAndRegisterModules(), "short-secret", 3600, 120);
 
         assertThrows(InfraException.class, () -> service.issueAccessToken(1L, "user@empresa.com", List.of("ADMIN")));
     }
@@ -80,4 +91,3 @@ class JwtTokenServiceTest {
         return signingInput + "." + signature;
     }
 }
-

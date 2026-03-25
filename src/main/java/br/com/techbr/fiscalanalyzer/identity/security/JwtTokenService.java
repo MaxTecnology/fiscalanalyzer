@@ -33,17 +33,20 @@ public class JwtTokenService {
     private final Base64.Encoder urlEncoder = Base64.getUrlEncoder().withoutPadding();
     private final Base64.Decoder urlDecoder = Base64.getUrlDecoder();
     private final long accessTokenTtlSeconds;
+    private final long clockSkewSeconds;
     private final byte[] secretBytes;
     private final boolean configured;
 
     public JwtTokenService(ObjectMapper objectMapper,
                            @Value("${app.security.jwt.secret:}") String secret,
-                           @Value("${app.security.jwt.access-token-ttl-seconds:3600}") long accessTokenTtlSeconds) {
+                           @Value("${app.security.jwt.access-token-ttl-seconds:3600}") long accessTokenTtlSeconds,
+                           @Value("${app.security.jwt.clock-skew-seconds:120}") long clockSkewSeconds) {
         this.objectMapper = objectMapper;
         String normalizedSecret = secret == null ? "" : secret.trim();
         this.secretBytes = normalizedSecret.getBytes(StandardCharsets.UTF_8);
         this.configured = normalizedSecret.length() >= MIN_SECRET_LENGTH;
         this.accessTokenTtlSeconds = Math.max(60, accessTokenTtlSeconds);
+        this.clockSkewSeconds = Math.max(0, clockSkewSeconds);
     }
 
     public AccessToken issueAccessToken(Long userId, String email, List<String> roles) {
@@ -104,7 +107,7 @@ public class JwtTokenService {
         Map<String, Object> payload = decodeMap(parts[1]);
         long exp = asEpochSecond(payload.get("exp"), "exp");
         Instant expiresAt = Instant.ofEpochSecond(exp);
-        if (Instant.now().isAfter(expiresAt)) {
+        if (Instant.now().isAfter(expiresAt.plusSeconds(clockSkewSeconds))) {
             throw new UnauthorizedException("JWT expirado");
         }
 

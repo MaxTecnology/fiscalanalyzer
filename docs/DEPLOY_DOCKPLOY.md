@@ -37,7 +37,9 @@ Motivo:
 | `APP_SECURITY_BOOTSTRAP_TOKEN` | recomendado | Token one-shot para `POST /auth/bootstrap-admin` em ambiente novo. |
 | `APP_SECURITY_JWT_SECRET` | sim (fase front/login) | Segredo HMAC do JWT de usuário local (mínimo 32 chars). |
 | `APP_SECURITY_JWT_ACCESS_TOKEN_TTL_SECONDS` | recomendado | Tempo de vida do access token JWT (segundos). |
+| `APP_SECURITY_JWT_CLOCK_SKEW_SECONDS` | recomendado | Tolerância de clock na validação de expiração do JWT (segundos). |
 | `APP_WEB_CORS_ALLOWED_ORIGINS` | sim (com front separado) | Lista de origens permitidas no CORS (separadas por vírgula). |
+| `APP_TIMEZONE` | recomendado | Timezone padrão da API (ex.: `America/Fortaleza`). |
 | `APP_SECURITY_AUTH_AUDIT_MODE` | recomendado | Nível de auditoria de auth (`off`, `failures`, `all`). |
 | `APP_SECURITY_AUDIT_CLEANUP_ENABLED` | recomendado | Liga/desliga job de retenção de auditoria. |
 | `APP_SECURITY_AUDIT_CLEANUP_CRON` | recomendado | Agenda do cleanup (`cron`, UTC). |

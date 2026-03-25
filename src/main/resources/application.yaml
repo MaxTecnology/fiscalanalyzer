@@ -1,6 +1,8 @@
 spring:
   application:
     name: FiscalAnalyzer
+  jackson:
+    time-zone: ${APP_TIMEZONE:America/Fortaleza}
   jpa:
     hibernate:
       ddl-auto: validate
@@ -23,6 +25,7 @@ app:
     jwt:
       secret: ${APP_SECURITY_JWT_SECRET:}
       access-token-ttl-seconds: ${APP_SECURITY_JWT_ACCESS_TOKEN_TTL_SECONDS:3600}
+      clock-skew-seconds: ${APP_SECURITY_JWT_CLOCK_SKEW_SECONDS:120}
     auth-audit:
       mode: ${APP_SECURITY_AUTH_AUDIT_MODE:failures}
     audit-cleanup:
