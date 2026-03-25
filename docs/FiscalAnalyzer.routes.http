@@ -46,7 +46,7 @@ Content-Type: application/json
   "tenantNome": "{{tenantNome}}",
   "empresaRazaoSocial": "{{empresaRazaoSocial}}",
   "empresaCnpj": "{{empresaCnpj}}",
-  "nome": "Admin Bootstrap",
+  "nome": "Admin TechBr",
   "email": "admin@techbr.com",
   "password": "Password@12"
 }
