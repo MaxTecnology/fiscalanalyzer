@@ -3,8 +3,8 @@
 Este documento é a fonte de verdade para tudo que impacta o **Agente C#**.
 Sempre que o backend mudar algo que afete integração, atualizar este arquivo.
 
-Data da última atualização: **2026-03-25**
-Versão do contrato: **v1.5**
+Data da última atualização: **2026-03-26**
+Versão do contrato: **v1.6**
 
 ---
 
@@ -44,7 +44,9 @@ Response `200`:
   "tenantId": 99,
   "empresaId": 99,
   "scanIntervalSeconds": 60,
-  "maxUploadConcurrency": 4
+  "maxUploadConcurrency": 4,
+  "heartbeatIntervalSeconds": 30,
+  "resolvedAgentId": "desktop-agent-01"
 }
 ```
 
@@ -53,7 +55,45 @@ Erros:
 - `403 AUTH_FORBIDDEN`: ApiKey revogada/inativa
 - `429 RATE_LIMITED`: limite de requisições excedido (usar header `Retry-After`)
 
-### 2.2 POST `/imports/manifest`
+### 2.2 POST `/agent/heartbeat`
+
+Header obrigatório:
+- `Authorization: Bearer {ApiKey}`
+
+Header recomendado:
+- `X-Agent-Id: <id-estável-do-agente>`
+
+Request (exemplo mínimo):
+
+```json
+{
+  "agentVersion": "1.0.0",
+  "hostname": "desktop-agent-01",
+  "uploadsInFlight": 2,
+  "pendingFiles": 48,
+  "errorCountWindow": 0
+}
+```
+
+Response `200`:
+
+```json
+{
+  "tenantId": 99,
+  "empresaId": 99,
+  "agentId": "desktop-agent-01",
+  "status": "ONLINE",
+  "heartbeatIntervalSeconds": 30,
+  "serverTime": "2026-03-26T18:00:00Z"
+}
+```
+
+Erros:
+- `401 AUTH_UNAUTHORIZED`
+- `403 AUTH_FORBIDDEN`
+- `429 RATE_LIMITED`
+
+### 2.3 POST `/imports/manifest`
 
 Também aceito em `/api/importacoes/manifest`.
 
@@ -107,7 +147,7 @@ Erros:
 - `422 UNPROCESSABLE_ENTITY`: `objectKey` não existe no storage
 - `500 INFRA_ERROR` ou `500 INTERNAL_ERROR`: falha de infra/inesperada
 
-### 2.3 POST `/agent/upload-url`
+### 2.4 POST `/agent/upload-url`
 
 Header obrigatório:
 - `Authorization: Bearer {ApiKey}`
@@ -143,15 +183,15 @@ Erros:
 - `409 CONFLICT`: objeto já existe para o `sha256` informado
 - `500 INFRA_ERROR`/`INTERNAL_ERROR`: falha de infra
 
-### 2.4 GET `/imports/{id}`
+### 2.5 GET `/imports/{id}`
 
 Retorna resumo da importação, incluindo contadores por status de item.
 
-### 2.5 GET `/imports/{id}/items?status=&page=&size=`
+### 2.6 GET `/imports/{id}/items?status=&page=&size=`
 
 Retorna itens da importação paginados.
 
-### 2.6 GET `/documents/{accessKey}?tenantId=&empresaId=`
+### 2.7 GET `/documents/{accessKey}?tenantId=&empresaId=`
 
 Retorna documento mínimo persistido por chave de acesso.
 
@@ -214,6 +254,18 @@ Recomendação do agente:
 ---
 
 ## 6. Changelog de integração (somente impactos no agente)
+
+### v1.6 — 2026-03-26
+- Novo endpoint `POST /agent/heartbeat`.
+- `POST /agent/session` retorna também:
+  - `heartbeatIntervalSeconds`
+  - `resolvedAgentId`
+- Backend mantém read model de presença por `tenant/empresa/agentId`
+  (base para monitoramento no front admin).
+
+Impacto no agente:
+- chamar `/agent/heartbeat` periodicamente (usar intervalo recomendado do backend).
+- enviar `X-Agent-Id` estável para presença por instância (sem fallback por ApiKey).
 
 ### v1.5 — 2026-03-24
 - Backend de rate-limit/lockout migrado para Redis (consistente entre réplicas).

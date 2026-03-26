@@ -113,3 +113,16 @@
     - `agent_auth_audit`
 - Referência usada: `(empresa_id, tenant_id) -> empresa(id, tenant_id)`.
 - Migração usa `NOT VALID` para não quebrar ambientes legados; quando não há órfãos a validação é feita automaticamente.
+
+## Presença operacional do agent (V21)
+- Nova tabela `agent_instance_status` para monitoramento por instância:
+    - chave de escopo: `UNIQUE (tenant_id, empresa_id, agent_id)`
+    - vínculo de segurança: `api_key_id` + `key_prefix`
+    - sinais operacionais: `status`, `last_seen_at`, `started_at`
+    - telemetria: `uploads_in_flight`, `pending_files`, `error_count_window`
+- Status suportados:
+    - `ONLINE`
+    - `DEGRADED`
+    - `OFFLINE`
+    - `BLOCKED`
+    - `REVOKED`

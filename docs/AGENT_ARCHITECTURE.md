@@ -110,13 +110,15 @@ FiscalAnalyzer.Agent/
 
 ```
 4. Agente chama POST /agent/session (Bearer ApiKey) para obter tenant/empresa do ciclo
-5. ManifestBuilder monta lista de ManifestEntry para os arquivos com sucesso
-6. ManifestSender faz POST /imports/manifest com Bearer ApiKey
-7. Backend registra importacao + import_items em batch e enfileira parse
-8. Agente registra importacaoId retornado no UploadStateStore
+5. Agente inicia loop de heartbeat em POST /agent/heartbeat (intervalo recomendado pelo backend)
+6. ManifestBuilder monta lista de ManifestEntry para os arquivos com sucesso
+7. ManifestSender faz POST /imports/manifest com Bearer ApiKey
+8. Backend registra importacao + import_items em batch e enfileira parse
+9. Agente registra importacaoId retornado no UploadStateStore
 
 Observação:
 - enviar `X-Agent-Id` estável nas chamadas autenticadas para melhorar identificação operacional e lockout.
+- sem `X-Agent-Id` estável, backend usa fallback por ApiKey e perde granularidade por instância.
 ```
 
 ### 5.3 Retry local (Polly)

@@ -62,6 +62,10 @@ Motivo:
 | `APP_SECURITY_RATE_LIMIT_AUTH_FAILURE_THRESHOLD` | recomendado | Tentativas de auth inválidas antes de lockout. |
 | `APP_SECURITY_RATE_LIMIT_AUTH_FAILURE_WINDOW_SECONDS` | recomendado | Janela de tempo para contar falhas de auth. |
 | `APP_SECURITY_RATE_LIMIT_AUTH_FAILURE_LOCKOUT_SECONDS` | recomendado | Duração do lockout após exceder limiar. |
+| `APP_AGENT_PRESENCE_HEARTBEAT_INTERVAL_SECONDS` | recomendado | Intervalo sugerido de heartbeat retornado ao agente. |
+| `APP_AGENT_PRESENCE_DEGRADED_AFTER_SECONDS` | recomendado | Sem heartbeat além desse tempo, status vira `DEGRADED`. |
+| `APP_AGENT_PRESENCE_OFFLINE_AFTER_SECONDS` | recomendado | Sem heartbeat além desse tempo, status vira `OFFLINE`. |
+| `APP_AGENT_PRESENCE_STATUS_REFRESH_INTERVAL_MS` | recomendado | Intervalo do scheduler que recalcula status stale. |
 
 Observação:
 - variáveis de Actuator (`MANAGEMENT_ENDPOINT_HEALTH_SHOW_DETAILS`, `MANAGEMENT_ENDPOINTS_WEB_EXPOSURE_INCLUDE`) são opcionais e usadas apenas para aumentar visibilidade operacional.

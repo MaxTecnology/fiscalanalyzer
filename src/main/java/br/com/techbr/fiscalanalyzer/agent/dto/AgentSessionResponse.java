@@ -4,5 +4,7 @@ public record AgentSessionResponse(
         Long tenantId,
         Long empresaId,
         Integer scanIntervalSeconds,
-        Integer maxUploadConcurrency
+        Integer maxUploadConcurrency,
+        Integer heartbeatIntervalSeconds,
+        String resolvedAgentId
 ) {}

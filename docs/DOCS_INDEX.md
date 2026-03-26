@@ -43,6 +43,9 @@ Data de referência: **2026-03-26**
   Arquitetura e fluxo recomendado para o projeto do agent.
 - `AGENT_PROMPT.md`  
   Guia de construção do agent C# (documento de implementação do projeto externo).
+- `AGENT_PRESENCE_MONITORING_PLAN.md`
+  Plano de monitoramento profissional de presença (`session`/`heartbeat`)
+  e leitura operacional para front admin.
 
 ---
 

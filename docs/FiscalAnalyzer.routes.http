@@ -193,6 +193,21 @@ Content-Type: application/json
 {}
 
 ###
+### Agent Heartbeat (presença operacional)
+POST {{baseUrl}}/agent/heartbeat
+Authorization: Bearer {{agentApiKey}}
+X-Agent-Id: {{agentId}}
+Content-Type: application/json
+
+{
+  "agentVersion": "1.0.0",
+  "hostname": "desktop-agent-01",
+  "uploadsInFlight": 2,
+  "pendingFiles": 48,
+  "errorCountWindow": 0
+}
+
+###
 ### Agent Session - repetir em burst para validar 429 + Retry-After
 POST {{baseUrl}}/agent/session
 Authorization: Bearer {{agentApiKey}}
@@ -270,6 +285,26 @@ Content-Type: application/json
 ###
 ### Admin - listar Agent API Keys (requer JWT ADMIN)
 GET {{baseUrl}}/admin/empresas/{{empresaAdminId}}/agent-keys?tenantId={{tenantId}}
+Authorization: Bearer {{userJwt}}
+
+###
+### Admin - monitor de agentes (presença por tenant/empresa)
+GET {{baseUrl}}/admin/empresas/{{empresaAdminId}}/agents?tenantId={{tenantId}}&page=0&size=20
+Authorization: Bearer {{userJwt}}
+
+###
+### Admin - monitor de agentes filtrando por status
+GET {{baseUrl}}/admin/empresas/{{empresaAdminId}}/agents?tenantId={{tenantId}}&status=ONLINE&page=0&size=20
+Authorization: Bearer {{userJwt}}
+
+###
+### Admin - resumo de presença de agentes (cards do front)
+GET {{baseUrl}}/admin/empresas/{{empresaAdminId}}/agents/summary?tenantId={{tenantId}}
+Authorization: Bearer {{userJwt}}
+
+###
+### Admin - detalhe de um agente específico
+GET {{baseUrl}}/admin/empresas/{{empresaAdminId}}/agents/{{agentId}}?tenantId={{tenantId}}
 Authorization: Bearer {{userJwt}}
 
 ###

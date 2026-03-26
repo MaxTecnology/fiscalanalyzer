@@ -148,7 +148,21 @@ Características:
 
 ---
 
-### 2.9 Identidade Interna (Tenant/Empresa)
+### 2.9 Presença Operacional de Agent
+Responsável por:
+- registrar presença por instância (`tenant/empresa/agentId`)
+- receber heartbeat periódico do agente
+- expor leitura para monitoramento no front admin
+
+Características:
+- read model dedicado em `agent_instance_status`
+- status operacional: `ONLINE`, `DEGRADED`, `OFFLINE` (com janelas configuráveis)
+- atualização por `POST /agent/session` + `POST /agent/heartbeat`
+- refresh automático de status stale via scheduler
+
+---
+
+### 2.10 Identidade Interna (Tenant/Empresa)
 Responsável por:
 - manter cadastro canônico de `tenant` e `empresa`
 - validar escopo ativo/inativo antes de upload/manifesto/consulta/doc e gestão de ApiKey

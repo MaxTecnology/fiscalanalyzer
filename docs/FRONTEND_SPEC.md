@@ -94,8 +94,7 @@ Antes de iniciar as fases dependentes, confirmar os contratos abaixo.
 
 ### 3.1 Endpoint de listagem de importações (OBRIGATÓRIO)
 
-**Problema:** não existe `GET /imports` — apenas `GET /imports/{id}`.
-Sem listagem, não há painel de monitoramento.
+Status backend: **disponível**.
 
 **Contrato solicitado:**
 
@@ -127,7 +126,23 @@ Resposta esperada (padrão Spring Page):
 }
 ```
 
-Filtros desejados: `status` (opcional), `page`, `size`, `sort` (opcional).
+Filtros: `status` (opcional), `page`, `size`, `sort` (opcional).
+
+### 3.2 Endpoint de monitoramento de agentes (OBRIGATÓRIO para painel de operação)
+
+Status backend: **disponível**.
+
+Contratos:
+
+- `GET /admin/empresas/{empresaId}/agents?tenantId={tenantId}&status={status?}&page=0&size=20`
+- `GET /admin/empresas/{empresaId}/agents/summary?tenantId={tenantId}`
+- `GET /admin/empresas/{empresaId}/agents/{agentId}?tenantId={tenantId}`
+
+Resumo esperado:
+
+- cards por status (`ONLINE`, `DEGRADED`, `OFFLINE`, `BLOCKED`, `REVOKED`)
+- listagem paginada por instância de agente
+- detalhe por agente com `lastSeenAt`, `lastUploadAt`, `lastManifestAt`, `errorCountWindow`
 
 ### 3.2 Payload atual de `GET /auth/me` (JÁ IMPLEMENTADO)
 
@@ -429,6 +444,22 @@ Nunca usar a URL do backend hardcoded no código.
 - `AgentKeyCreateModal` com UX de segurança
 - `AgentKeyRotateModal`
 - `AgentKeyRevokeConfirm`
+
+---
+
+### Fase 5.1 — Admin: Monitor de Agentes
+**Critério de início:** Fase 5 concluída
+**Critério de aceite:**
+- [ ] Cards de status (`ONLINE`, `DEGRADED`, `OFFLINE`, `BLOCKED`, `REVOKED`)
+- [ ] Tabela paginada de agentes por empresa com filtro por status
+- [ ] Colunas mínimas: `agentId`, `status`, `lastSeenAt`, `uploadsInFlight`, `pendingFiles`, `errorCountWindow`
+- [ ] Tela de detalhe por agente com telemetria e últimos timestamps
+
+**Entregáveis:**
+- `/admin/empresas/{id}/agents` — listagem paginada
+- `/admin/empresas/{id}/agents/{agentId}` — detalhe
+- `/admin/empresas/{id}/agents/summary` — cards
+- `AgentStatusCards`, `AgentInstanceTable`, `AgentInstanceDetailDrawer`
 
 ---
 
