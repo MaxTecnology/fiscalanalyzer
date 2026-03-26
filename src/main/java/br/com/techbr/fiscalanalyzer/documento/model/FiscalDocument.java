@@ -66,7 +66,7 @@ public class FiscalDocument {
     @Column(name = "emit_ie", length = 20)
     private String emitIe;
 
-    @Column(name = "emit_uf", length = 2)
+    @Column(name = "emit_uf", columnDefinition = "char(2)")
     private String emitUf;
 
     @Column(name = "dest_documento", length = 14)
@@ -81,7 +81,7 @@ public class FiscalDocument {
     @Column(name = "dest_ie", length = 20)
     private String destIe;
 
-    @Column(name = "dest_uf", length = 2)
+    @Column(name = "dest_uf", columnDefinition = "char(2)")
     private String destUf;
 
     @Column(name = "total_products", precision = 15, scale = 2)
