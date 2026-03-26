@@ -4,9 +4,12 @@ import br.com.techbr.fiscalanalyzer.common.exception.ValidationException;
 import org.junit.jupiter.api.Test;
 
 import java.io.ByteArrayInputStream;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.nio.charset.StandardCharsets;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 class NfeXmlParserTest {
@@ -53,6 +56,7 @@ class NfeXmlParserTest {
                       <dEmi>2024-02-01</dEmi>
                     </ide>
                     <emit><CNPJ>11111111111111</CNPJ></emit>
+                    <dest><CPF>12345678901</CPF></dest>
                     <total><ICMSTot><vNF>10.00</vNF></ICMSTot></total>
                   </infNFe>
                 </NFe>
@@ -62,6 +66,7 @@ class NfeXmlParserTest {
 
         assertEquals(65, parsed.model());
         assertEquals("E", parsed.operationType());
+        assertEquals("12345678901", parsed.destCnpj());
     }
 
     @Test
@@ -156,5 +161,102 @@ class NfeXmlParserTest {
         assertEquals("100.00", item.cofinsBase().toString());
         assertEquals("7.60", item.cofinsRate().toString());
         assertEquals("7.60", item.cofinsValue().toString());
+    }
+
+    @Test
+    void parse_accessKey_from_chNFe_when_infNFe_id_missing() {
+        String xml = """
+                <nfeProc xmlns="http://www.portalfiscal.inf.br/nfe">
+                  <NFe>
+                    <infNFe>
+                      <ide>
+                        <mod>55</mod>
+                        <tpNF>1</tpNF>
+                        <dEmi>2025-01-01</dEmi>
+                      </ide>
+                      <emit><CNPJ>11111111111111</CNPJ></emit>
+                      <total><ICMSTot><vNF>1.00</vNF></ICMSTot></total>
+                    </infNFe>
+                  </NFe>
+                  <protNFe>
+                    <infProt>
+                      <chNFe>26251216404287029056550010001762721022736522</chNFe>
+                    </infProt>
+                  </protNFe>
+                </nfeProc>
+                """;
+        NfeXmlParser parser = new NfeXmlParser();
+        ParsedNfe parsed = parser.parse(new ByteArrayInputStream(xml.getBytes(StandardCharsets.UTF_8)));
+        assertEquals("26251216404287029056550010001762721022736522", parsed.accessKey());
+    }
+
+    @Test
+    void parse_real_xml_samples_from_docs() throws Exception {
+        NfeXmlParser parser = new NfeXmlParser();
+
+        String nfeXml = Files.readString(Path.of("docs/xmls/nfe.xml"));
+        ParsedNfe nfe = parser.parse(new ByteArrayInputStream(nfeXml.getBytes(StandardCharsets.UTF_8)));
+        assertEquals(55, nfe.model());
+        assertEquals("26251216404287029056550010001762721022736522", nfe.accessKey());
+        assertEquals("16404287029056", nfe.emitCnpj());
+        assertEquals("SUZANO PAPEL E CELULOSE S.A.", nfe.emitName());
+        assertEquals("043687628", nfe.emitIe());
+        assertEquals("PE", nfe.emitUf());
+        assertEquals(Integer.valueOf(176272), nfe.numeroNota());
+        assertEquals("1", nfe.serie());
+        assertEquals("Venda merc.adq.receb.de terceiros ou MEI", nfe.naturezaOperacao());
+        assertEquals((short) 1, nfe.ambiente());
+        assertEquals((short) 1, nfe.finalidadeEmissao());
+        assertEquals((short) 0, nfe.consumidorFinal());
+        assertEquals((short) 3, nfe.presencaComprador());
+        assertEquals("126250139789272", nfe.protocoloNumero());
+        assertEquals(Integer.valueOf(100), nfe.protocoloStatus());
+        assertEquals("Autorizado o uso da NF-e", nfe.protocoloMotivo());
+        assertEquals("05841177000134", nfe.destCnpj());
+        assertEquals("05841177000134", nfe.destDocument());
+        assertEquals("A PEQUENINA LTDA", nfe.destName());
+        assertEquals("248521608", nfe.destIe());
+        assertEquals("AL", nfe.destUf());
+        assertEquals("0.00", nfe.totalFrete().toString());
+        assertEquals("0.00", nfe.totalDesconto().toString());
+        assertEquals("0.00", nfe.totalOutros().toString());
+        assertEquals("2789.62", nfe.totalIpi().toString());
+        assertEquals("0000176272", nfe.faturaNumero());
+        assertEquals("88624.11", nfe.faturaValorOriginal().toString());
+        assertEquals("0.00", nfe.faturaValorDesconto().toString());
+        assertEquals("88624.11", nfe.faturaValorLiquido().toString());
+        assertEquals("88624.11", nfe.totalAmount().toString());
+        assertNotNull(nfe.issueDateTime());
+        assertEquals(1, nfe.payments().size());
+        assertEquals(3, nfe.duplicates().size());
+        assertEquals(1, nfe.additionalInfos().size());
+        assertEquals(2, nfe.items().size());
+
+        String nfceXml = Files.readString(Path.of("docs/xmls/nfce.xml"));
+        ParsedNfe nfce = parser.parse(new ByteArrayInputStream(nfceXml.getBytes(StandardCharsets.UTF_8)));
+        assertEquals(65, nfce.model());
+        assertEquals("26251052729931000390650060000031721472939584", nfce.accessKey());
+        assertEquals(Integer.valueOf(3172), nfce.numeroNota());
+        assertEquals("6", nfce.serie());
+        assertEquals("VENDA DE MERC. ADQUIRIDA OU RECEBIDA DE TERCEIROS", nfce.naturezaOperacao());
+        assertEquals("52729931000390", nfce.emitCnpj());
+        assertEquals("REAL DISTR E COMERCIO DE ALIMENTOS LTDA", nfce.emitName());
+        assertEquals("PE", nfce.emitUf());
+        assertEquals("23168800023", nfce.destCnpj());
+        assertEquals("23168800023", nfce.destDocument());
+        assertEquals("CONSUMIDOR FINAL", nfce.destName());
+        assertEquals("4.07", nfce.totalProducts().toString());
+        assertEquals("0.00", nfce.totalFrete().toString());
+        assertEquals("0.00", nfce.totalDesconto().toString());
+        assertEquals("0.00", nfce.totalIpi().toString());
+        assertEquals("1.41", nfce.totalTributos().toString());
+        assertEquals("226250870102596", nfce.protocoloNumero());
+        assertEquals(Integer.valueOf(100), nfce.protocoloStatus());
+        assertNotNull(nfce.qrCodeUrl());
+        assertEquals(1, nfce.payments().size());
+        assertEquals(3, nfce.additionalInfos().size());
+        assertEquals("4.07", nfce.totalAmount().toString());
+        assertNotNull(nfce.issueDateTime());
+        assertEquals(2, nfce.items().size());
     }
 }

@@ -7,6 +7,9 @@ import br.com.techbr.fiscalanalyzer.agent.service.AgentUploadAuditService;
 import br.com.techbr.fiscalanalyzer.agent.service.AgentUploadUrlService;
 import br.com.techbr.fiscalanalyzer.documento.model.FiscalDocument;
 import br.com.techbr.fiscalanalyzer.documento.model.FiscalDocumentRegistry;
+import br.com.techbr.fiscalanalyzer.documento.repository.FiscalDocumentAdditionalInfoRepository;
+import br.com.techbr.fiscalanalyzer.documento.repository.FiscalDocumentDuplicateRepository;
+import br.com.techbr.fiscalanalyzer.documento.repository.FiscalDocumentPaymentRepository;
 import br.com.techbr.fiscalanalyzer.documento.repository.FiscalDocumentRegistryRepository;
 import br.com.techbr.fiscalanalyzer.documento.repository.FiscalDocumentRepository;
 import br.com.techbr.fiscalanalyzer.importacao.dto.ManifestEntryRequest;
@@ -62,6 +65,9 @@ class AgentManifestParseFlowTest {
         ImportItemRepository importItemRepository = mock(ImportItemRepository.class);
         FiscalDocumentRepository fiscalDocumentRepository = mock(FiscalDocumentRepository.class);
         FiscalDocumentRegistryRepository registryRepository = mock(FiscalDocumentRegistryRepository.class);
+        FiscalDocumentPaymentRepository fiscalDocumentPaymentRepository = mock(FiscalDocumentPaymentRepository.class);
+        FiscalDocumentDuplicateRepository fiscalDocumentDuplicateRepository = mock(FiscalDocumentDuplicateRepository.class);
+        FiscalDocumentAdditionalInfoRepository fiscalDocumentAdditionalInfoRepository = mock(FiscalDocumentAdditionalInfoRepository.class);
         FiscalItemRepository fiscalItemRepository = mock(FiscalItemRepository.class);
         ExtractZipProducer extractZipProducer = mock(ExtractZipProducer.class);
         TenantEmpresaValidationService tenantEmpresaValidationService = mock(TenantEmpresaValidationService.class);
@@ -84,6 +90,9 @@ class AgentManifestParseFlowTest {
                 importItemRepository,
                 fiscalDocumentRepository,
                 registryRepository,
+                fiscalDocumentPaymentRepository,
+                fiscalDocumentDuplicateRepository,
+                fiscalDocumentAdditionalInfoRepository,
                 fiscalItemRepository,
                 storageService,
                 new SimpleMeterRegistry()

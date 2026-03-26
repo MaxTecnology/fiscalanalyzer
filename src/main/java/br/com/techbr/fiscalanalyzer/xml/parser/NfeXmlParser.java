@@ -32,23 +32,59 @@ public class NfeXmlParser {
 
             String accessKey = null;
             Short model = null;
+            Integer numeroNota = null;
+            String serie = null;
+            String naturezaOperacao = null;
             String tpNF = null;
             LocalDate issueDate = null;
             Instant issueDateTime = null;
+            Short ambiente = null;
+            Short finalidadeEmissao = null;
+            Short consumidorFinal = null;
+            Short presencaComprador = null;
             String emitCnpj = null;
+            String emitName = null;
+            String emitIe = null;
+            String emitUf = null;
+            String destDocument = null;
             String destCnpj = null;
+            String destName = null;
+            String destIe = null;
+            String destUf = null;
             BigDecimal totalProducts = null;
             BigDecimal totalAmount = null;
+            BigDecimal totalFrete = null;
+            BigDecimal totalDesconto = null;
+            BigDecimal totalOutros = null;
+            BigDecimal totalIpi = null;
+            BigDecimal totalTributos = null;
             BigDecimal totalIcms = null;
             BigDecimal totalPis = null;
             BigDecimal totalCofins = null;
+            String protocoloNumero = null;
+            Integer protocoloStatus = null;
+            String protocoloMotivo = null;
+            Instant protocoloRecebimento = null;
+            String qrCodeUrl = null;
+            String faturaNumero = null;
+            BigDecimal faturaValorOriginal = null;
+            BigDecimal faturaValorDesconto = null;
+            BigDecimal faturaValorLiquido = null;
+
+            List<ParsedNfePayment> payments = new ArrayList<>();
+            List<ParsedNfeDuplicate> duplicates = new ArrayList<>();
+            List<ParsedNfeAdditionalInfo> additionalInfos = new ArrayList<>();
 
             List<ParsedNfeItem> items = new ArrayList<>();
             ParsedItemBuilder currentItem = null;
+            ParsedPaymentBuilder currentPayment = null;
+            ParsedDuplicateBuilder currentDuplicate = null;
+            ParsedAdditionalInfoBuilder currentAdditionalInfo = null;
             boolean inProd = false;
             boolean inICMS = false;
             boolean inPIS = false;
             boolean inCOFINS = false;
+            boolean inCard = false;
 
             while (reader.hasNext()) {
                 int event = reader.next();
@@ -66,14 +102,62 @@ public class NfeXmlParser {
                         }
                         continue;
                     }
+                    if ("chNFe".equals(name) && accessKey == null) {
+                        String normalized = normalizeAccessKey(reader.getElementText());
+                        if (normalized != null) {
+                            accessKey = normalized;
+                        }
+                        stack.pop();
+                        continue;
+                    }
 
                     if ("mod".equals(name)) {
                         model = parseShort(reader.getElementText());
                         stack.pop();
                         continue;
                     }
+                    if ("nNF".equals(name)) {
+                        numeroNota = parseInteger(reader.getElementText());
+                        stack.pop();
+                        continue;
+                    }
+                    if ("serie".equals(name)) {
+                        String value = reader.getElementText();
+                        serie = value == null ? null : value.trim();
+                        stack.pop();
+                        continue;
+                    }
+                    if ("natOp".equals(name)) {
+                        String value = reader.getElementText();
+                        naturezaOperacao = value == null ? null : value.trim();
+                        stack.pop();
+                        continue;
+                    }
                     if ("tpNF".equals(name)) {
                         tpNF = reader.getElementText();
+                        stack.pop();
+                        continue;
+                    }
+                    if ("tpAmb".equals(name)) {
+                        String parent = parentOf(stack);
+                        if ("ide".equals(parent)) {
+                            ambiente = parseShort(reader.getElementText());
+                            stack.pop();
+                            continue;
+                        }
+                    }
+                    if ("finNFe".equals(name)) {
+                        finalidadeEmissao = parseShort(reader.getElementText());
+                        stack.pop();
+                        continue;
+                    }
+                    if ("indFinal".equals(name)) {
+                        consumidorFinal = parseShort(reader.getElementText());
+                        stack.pop();
+                        continue;
+                    }
+                    if ("indPres".equals(name)) {
+                        presencaComprador = parseShort(reader.getElementText());
                         stack.pop();
                         continue;
                     }
@@ -89,15 +173,65 @@ public class NfeXmlParser {
                         stack.pop();
                         continue;
                     }
-                    if ("CNPJ".equals(name)) {
+                    if ("CNPJ".equals(name) || "CPF".equals(name)) {
                         String parent = parentOf(stack);
+                        String value = normalizeDocument(reader.getElementText());
                         if ("emit".equals(parent) && emitCnpj == null) {
-                            emitCnpj = reader.getElementText();
+                            emitCnpj = value;
                             stack.pop();
                             continue;
                         }
-                        if ("dest".equals(parent) && destCnpj == null) {
-                            destCnpj = reader.getElementText();
+                        if ("dest".equals(parent)) {
+                            if (destDocument == null) {
+                                destDocument = value;
+                            }
+                            if (destCnpj == null) {
+                                destCnpj = value;
+                            }
+                            stack.pop();
+                            continue;
+                        }
+                        if ("card".equals(parent) && inCard && currentPayment != null) {
+                            currentPayment.cardCnpj = value;
+                            stack.pop();
+                            continue;
+                        }
+                    }
+                    if ("xNome".equals(name)) {
+                        String parent = parentOf(stack);
+                        if ("emit".equals(parent) && emitName == null) {
+                            emitName = trimOrNull(reader.getElementText());
+                            stack.pop();
+                            continue;
+                        }
+                        if ("dest".equals(parent) && destName == null) {
+                            destName = trimOrNull(reader.getElementText());
+                            stack.pop();
+                            continue;
+                        }
+                    }
+                    if ("IE".equals(name)) {
+                        String parent = parentOf(stack);
+                        if ("emit".equals(parent) && emitIe == null) {
+                            emitIe = trimOrNull(reader.getElementText());
+                            stack.pop();
+                            continue;
+                        }
+                        if ("dest".equals(parent) && destIe == null) {
+                            destIe = trimOrNull(reader.getElementText());
+                            stack.pop();
+                            continue;
+                        }
+                    }
+                    if ("UF".equals(name)) {
+                        String parent = parentOf(stack);
+                        if ("enderEmit".equals(parent) && emitUf == null) {
+                            emitUf = trimOrNull(reader.getElementText());
+                            stack.pop();
+                            continue;
+                        }
+                        if ("enderDest".equals(parent) && destUf == null) {
+                            destUf = trimOrNull(reader.getElementText());
                             stack.pop();
                             continue;
                         }
@@ -126,6 +260,51 @@ public class NfeXmlParser {
                             continue;
                         }
                     }
+                    if ("vFrete".equals(name)) {
+                        String parent = parentOf(stack);
+                        if ("ICMSTot".equals(parent)) {
+                            totalFrete = parseBigDecimal(reader.getElementText());
+                            stack.pop();
+                            continue;
+                        }
+                    }
+                    if ("vDesc".equals(name)) {
+                        String parent = parentOf(stack);
+                        if ("ICMSTot".equals(parent)) {
+                            totalDesconto = parseBigDecimal(reader.getElementText());
+                            stack.pop();
+                            continue;
+                        }
+                        if ("fat".equals(parent)) {
+                            faturaValorDesconto = parseBigDecimal(reader.getElementText());
+                            stack.pop();
+                            continue;
+                        }
+                    }
+                    if ("vOutro".equals(name)) {
+                        String parent = parentOf(stack);
+                        if ("ICMSTot".equals(parent)) {
+                            totalOutros = parseBigDecimal(reader.getElementText());
+                            stack.pop();
+                            continue;
+                        }
+                    }
+                    if ("vIPI".equals(name)) {
+                        String parent = parentOf(stack);
+                        if ("ICMSTot".equals(parent)) {
+                            totalIpi = parseBigDecimal(reader.getElementText());
+                            stack.pop();
+                            continue;
+                        }
+                    }
+                    if ("vTotTrib".equals(name)) {
+                        String parent = parentOf(stack);
+                        if ("ICMSTot".equals(parent)) {
+                            totalTributos = parseBigDecimal(reader.getElementText());
+                            stack.pop();
+                            continue;
+                        }
+                    }
                     if ("vPIS".equals(name)) {
                         String parent = parentOf(stack);
                         if ("ICMSTot".equals(parent)) {
@@ -138,6 +317,67 @@ public class NfeXmlParser {
                         String parent = parentOf(stack);
                         if ("ICMSTot".equals(parent)) {
                             totalCofins = parseBigDecimal(reader.getElementText());
+                            stack.pop();
+                            continue;
+                        }
+                    }
+                    if ("nProt".equals(name)) {
+                        String parent = parentOf(stack);
+                        if ("infProt".equals(parent)) {
+                            protocoloNumero = trimOrNull(reader.getElementText());
+                            stack.pop();
+                            continue;
+                        }
+                    }
+                    if ("cStat".equals(name)) {
+                        String parent = parentOf(stack);
+                        if ("infProt".equals(parent)) {
+                            protocoloStatus = parseInteger(reader.getElementText());
+                            stack.pop();
+                            continue;
+                        }
+                    }
+                    if ("xMotivo".equals(name)) {
+                        String parent = parentOf(stack);
+                        if ("infProt".equals(parent)) {
+                            protocoloMotivo = trimOrNull(reader.getElementText());
+                            stack.pop();
+                            continue;
+                        }
+                    }
+                    if ("dhRecbto".equals(name)) {
+                        String parent = parentOf(stack);
+                        if ("infProt".equals(parent)) {
+                            protocoloRecebimento = parseOffsetInstant(reader.getElementText());
+                            stack.pop();
+                            continue;
+                        }
+                    }
+                    if ("qrCode".equals(name)) {
+                        qrCodeUrl = trimOrNull(reader.getElementText());
+                        stack.pop();
+                        continue;
+                    }
+                    if ("nFat".equals(name)) {
+                        String parent = parentOf(stack);
+                        if ("fat".equals(parent)) {
+                            faturaNumero = trimOrNull(reader.getElementText());
+                            stack.pop();
+                            continue;
+                        }
+                    }
+                    if ("vOrig".equals(name)) {
+                        String parent = parentOf(stack);
+                        if ("fat".equals(parent)) {
+                            faturaValorOriginal = parseBigDecimal(reader.getElementText());
+                            stack.pop();
+                            continue;
+                        }
+                    }
+                    if ("vLiq".equals(name)) {
+                        String parent = parentOf(stack);
+                        if ("fat".equals(parent)) {
+                            faturaValorLiquido = parseBigDecimal(reader.getElementText());
                             stack.pop();
                             continue;
                         }
@@ -165,6 +405,32 @@ public class NfeXmlParser {
                     }
                     if ("COFINS".equals(name)) {
                         inCOFINS = true;
+                        continue;
+                    }
+                    if ("detPag".equals(name)) {
+                        currentPayment = new ParsedPaymentBuilder();
+                        continue;
+                    }
+                    if ("card".equals(name)) {
+                        inCard = true;
+                        continue;
+                    }
+                    if ("dup".equals(name)) {
+                        currentDuplicate = new ParsedDuplicateBuilder();
+                        continue;
+                    }
+                    if ("obsCont".equals(name)) {
+                        currentAdditionalInfo = new ParsedAdditionalInfoBuilder();
+                        currentAdditionalInfo.infoType = "OBS_CONT";
+                        currentAdditionalInfo.fieldName = trimOrNull(reader.getAttributeValue(null, "xCampo"));
+                        continue;
+                    }
+                    if ("infCpl".equals(name)) {
+                        String value = trimOrNull(reader.getElementText());
+                        if (value != null) {
+                            additionalInfos.add(new ParsedNfeAdditionalInfo("INF_CPL", null, value));
+                        }
+                        stack.pop();
                         continue;
                     }
 
@@ -279,6 +545,72 @@ public class NfeXmlParser {
                             }
                         }
                     }
+                    if (currentPayment != null) {
+                        switch (name) {
+                            case "indPag" -> {
+                                currentPayment.paymentIndicator = parseShort(reader.getElementText());
+                                stack.pop();
+                                continue;
+                            }
+                            case "tPag" -> {
+                                currentPayment.paymentType = trimOrNull(reader.getElementText());
+                                stack.pop();
+                                continue;
+                            }
+                            case "vPag" -> {
+                                currentPayment.paymentAmount = parseBigDecimal(reader.getElementText());
+                                stack.pop();
+                                continue;
+                            }
+                            case "tpIntegra" -> {
+                                if (inCard) {
+                                    currentPayment.cardIntegrationType = parseShort(reader.getElementText());
+                                    stack.pop();
+                                    continue;
+                                }
+                            }
+                            case "tBand" -> {
+                                if (inCard) {
+                                    currentPayment.cardBrand = trimOrNull(reader.getElementText());
+                                    stack.pop();
+                                    continue;
+                                }
+                            }
+                            case "cAut" -> {
+                                if (inCard) {
+                                    currentPayment.cardAuthorizationCode = trimOrNull(reader.getElementText());
+                                    stack.pop();
+                                    continue;
+                                }
+                            }
+                        }
+                    }
+                    if (currentDuplicate != null) {
+                        switch (name) {
+                            case "nDup" -> {
+                                currentDuplicate.duplicateNumber = trimOrNull(reader.getElementText());
+                                stack.pop();
+                                continue;
+                            }
+                            case "dVenc" -> {
+                                currentDuplicate.dueDate = parseDate(reader.getElementText());
+                                stack.pop();
+                                continue;
+                            }
+                            case "vDup" -> {
+                                currentDuplicate.amount = parseBigDecimal(reader.getElementText());
+                                stack.pop();
+                                continue;
+                            }
+                        }
+                    }
+                    if (currentAdditionalInfo != null) {
+                        if ("xTexto".equals(name)) {
+                            currentAdditionalInfo.textValue = trimOrNull(reader.getElementText());
+                            stack.pop();
+                            continue;
+                        }
+                    }
                 } else if (event == XMLStreamConstants.END_ELEMENT) {
                     String name = reader.getLocalName();
                     if ("det".equals(name) && currentItem != null) {
@@ -295,6 +627,28 @@ public class NfeXmlParser {
                         inPIS = false;
                     } else if ("COFINS".equals(name)) {
                         inCOFINS = false;
+                    } else if ("card".equals(name)) {
+                        inCard = false;
+                    } else if ("detPag".equals(name) && currentPayment != null) {
+                        ParsedNfePayment parsedPayment = currentPayment.toParsedPayment();
+                        if (parsedPayment.paymentType() != null || parsedPayment.paymentAmount() != null) {
+                            payments.add(parsedPayment);
+                        }
+                        currentPayment = null;
+                    } else if ("dup".equals(name) && currentDuplicate != null) {
+                        ParsedNfeDuplicate parsedDuplicate = currentDuplicate.toParsedDuplicate();
+                        if (parsedDuplicate.duplicateNumber() != null
+                                || parsedDuplicate.dueDate() != null
+                                || parsedDuplicate.amount() != null) {
+                            duplicates.add(parsedDuplicate);
+                        }
+                        currentDuplicate = null;
+                    } else if ("obsCont".equals(name) && currentAdditionalInfo != null) {
+                        ParsedNfeAdditionalInfo parsedAdditionalInfo = currentAdditionalInfo.toParsedAdditionalInfo();
+                        if (parsedAdditionalInfo.textValue() != null) {
+                            additionalInfos.add(parsedAdditionalInfo);
+                        }
+                        currentAdditionalInfo = null;
                     }
                     if (!stack.isEmpty()) {
                         stack.pop();
@@ -322,16 +676,47 @@ public class NfeXmlParser {
             return new ParsedNfe(
                     model,
                     accessKey,
+                    numeroNota,
+                    serie,
+                    naturezaOperacao,
                     issueDate,
                     issueDateTime,
+                    ambiente,
+                    finalidadeEmissao,
+                    consumidorFinal,
+                    presencaComprador,
                     operationType,
                     emitCnpj,
+                    emitName,
+                    emitIe,
+                    emitUf,
+                    destDocument,
                     destCnpj,
+                    destName,
+                    destIe,
+                    destUf,
                     totalProducts,
                     totalAmount,
+                    totalFrete,
+                    totalDesconto,
+                    totalOutros,
+                    totalIpi,
+                    totalTributos,
                     totalIcms,
                     totalPis,
                     totalCofins,
+                    protocoloNumero,
+                    protocoloStatus,
+                    protocoloMotivo,
+                    protocoloRecebimento,
+                    qrCodeUrl,
+                    faturaNumero,
+                    faturaValorOriginal,
+                    faturaValorDesconto,
+                    faturaValorLiquido,
+                    payments,
+                    duplicates,
+                    additionalInfos,
                     items
             );
         } catch (ValidationException e) {
@@ -354,20 +739,49 @@ public class NfeXmlParser {
         if (value.startsWith("NFe")) {
             value = value.substring(3);
         }
+        value = value.replaceAll("\\D", "");
         if (value.length() == 44) {
             return value;
         }
         return null;
     }
 
+    private String normalizeDocument(String value) {
+        if (value == null) return null;
+        String normalized = value.trim().replaceAll("\\D", "");
+        if (normalized.isEmpty()) return null;
+        return normalized;
+    }
+
+    private String trimOrNull(String value) {
+        if (value == null) return null;
+        String trimmed = value.trim();
+        return trimmed.isEmpty() ? null : trimmed;
+    }
+
     private Short parseShort(String value) {
         if (value == null) return null;
-        return Short.parseShort(value.trim());
+        String normalized = value.trim();
+        if (normalized.isEmpty()) return null;
+        return Short.parseShort(normalized);
+    }
+
+    private Integer parseInteger(String value) {
+        if (value == null) return null;
+        String normalized = value.trim();
+        if (normalized.isEmpty()) return null;
+        return Integer.parseInt(normalized);
     }
 
     private BigDecimal parseBigDecimal(String value) {
         if (value == null) return null;
-        return new BigDecimal(value.trim());
+        String normalized = value.trim();
+        if (normalized.contains(",") && normalized.contains(".")) {
+            normalized = normalized.replace(".", "").replace(",", ".");
+        } else if (normalized.contains(",")) {
+            normalized = normalized.replace(",", ".");
+        }
+        return new BigDecimal(normalized);
     }
 
     private LocalDate parseDate(String value) {
@@ -395,8 +809,9 @@ public class NfeXmlParser {
     }
 
     private String mapTpNF(String tpNF) {
-        if (Objects.equals(tpNF, "0")) return "E";
-        if (Objects.equals(tpNF, "1")) return "S";
+        String normalized = tpNF == null ? null : tpNF.trim();
+        if (Objects.equals(normalized, "0")) return "E";
+        if (Objects.equals(normalized, "1")) return "S";
         throw new ValidationException("operation_type ausente");
     }
 
@@ -443,6 +858,48 @@ public class NfeXmlParser {
                     cofinsRate,
                     cofinsValue
             );
+        }
+    }
+
+    private static final class ParsedPaymentBuilder {
+        Short paymentIndicator;
+        String paymentType;
+        BigDecimal paymentAmount;
+        Short cardIntegrationType;
+        String cardCnpj;
+        String cardBrand;
+        String cardAuthorizationCode;
+
+        ParsedNfePayment toParsedPayment() {
+            return new ParsedNfePayment(
+                    paymentIndicator,
+                    paymentType,
+                    paymentAmount,
+                    cardIntegrationType,
+                    cardCnpj,
+                    cardBrand,
+                    cardAuthorizationCode
+            );
+        }
+    }
+
+    private static final class ParsedDuplicateBuilder {
+        String duplicateNumber;
+        LocalDate dueDate;
+        BigDecimal amount;
+
+        ParsedNfeDuplicate toParsedDuplicate() {
+            return new ParsedNfeDuplicate(duplicateNumber, dueDate, amount);
+        }
+    }
+
+    private static final class ParsedAdditionalInfoBuilder {
+        String infoType;
+        String fieldName;
+        String textValue;
+
+        ParsedNfeAdditionalInfo toParsedAdditionalInfo() {
+            return new ParsedNfeAdditionalInfo(infoType, fieldName, textValue);
         }
     }
 }

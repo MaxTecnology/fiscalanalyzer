@@ -2,8 +2,14 @@ package br.com.techbr.fiscalanalyzer.importacao.service;
 
 import br.com.techbr.fiscalanalyzer.common.exception.InfraException;
 import br.com.techbr.fiscalanalyzer.common.exception.ValidationException;
+import br.com.techbr.fiscalanalyzer.documento.model.FiscalDocumentAdditionalInfo;
+import br.com.techbr.fiscalanalyzer.documento.model.FiscalDocumentDuplicate;
 import br.com.techbr.fiscalanalyzer.documento.model.FiscalDocument;
+import br.com.techbr.fiscalanalyzer.documento.model.FiscalDocumentPayment;
 import br.com.techbr.fiscalanalyzer.documento.model.FiscalDocumentRegistry;
+import br.com.techbr.fiscalanalyzer.documento.repository.FiscalDocumentAdditionalInfoRepository;
+import br.com.techbr.fiscalanalyzer.documento.repository.FiscalDocumentDuplicateRepository;
+import br.com.techbr.fiscalanalyzer.documento.repository.FiscalDocumentPaymentRepository;
 import br.com.techbr.fiscalanalyzer.documento.repository.FiscalDocumentRegistryRepository;
 import br.com.techbr.fiscalanalyzer.documento.repository.FiscalDocumentRepository;
 import br.com.techbr.fiscalanalyzer.importacao.model.ImportItem;
@@ -16,9 +22,12 @@ import br.com.techbr.fiscalanalyzer.item.model.FiscalItem;
 import br.com.techbr.fiscalanalyzer.item.repository.FiscalItemRepository;
 import br.com.techbr.fiscalanalyzer.queue.message.ParseXmlMessage;
 import br.com.techbr.fiscalanalyzer.storage.service.StorageService;
+import br.com.techbr.fiscalanalyzer.xml.parser.ParsedNfeAdditionalInfo;
+import br.com.techbr.fiscalanalyzer.xml.parser.ParsedNfeDuplicate;
 import br.com.techbr.fiscalanalyzer.xml.parser.NfeXmlParser;
 import br.com.techbr.fiscalanalyzer.xml.parser.ParsedNfe;
 import br.com.techbr.fiscalanalyzer.xml.parser.ParsedNfeItem;
+import br.com.techbr.fiscalanalyzer.xml.parser.ParsedNfePayment;
 import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.Timer;
@@ -29,6 +38,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
+import java.io.FilterInputStream;
+import java.io.IOException;
 import java.io.InputStream;
 import java.security.DigestInputStream;
 import java.security.MessageDigest;
@@ -59,6 +70,9 @@ public class ParseXmlService {
     private final ImportItemRepository importItemRepository;
     private final FiscalDocumentRepository fiscalDocumentRepository;
     private final FiscalDocumentRegistryRepository registryRepository;
+    private final FiscalDocumentPaymentRepository fiscalDocumentPaymentRepository;
+    private final FiscalDocumentDuplicateRepository fiscalDocumentDuplicateRepository;
+    private final FiscalDocumentAdditionalInfoRepository fiscalDocumentAdditionalInfoRepository;
     private final FiscalItemRepository fiscalItemRepository;
     private final StorageService storageService;
     private final NfeXmlParser nfeXmlParser;
@@ -72,6 +86,9 @@ public class ParseXmlService {
                            ImportItemRepository importItemRepository,
                            FiscalDocumentRepository fiscalDocumentRepository,
                            FiscalDocumentRegistryRepository registryRepository,
+                           FiscalDocumentPaymentRepository fiscalDocumentPaymentRepository,
+                           FiscalDocumentDuplicateRepository fiscalDocumentDuplicateRepository,
+                           FiscalDocumentAdditionalInfoRepository fiscalDocumentAdditionalInfoRepository,
                            FiscalItemRepository fiscalItemRepository,
                            StorageService storageService,
                            MeterRegistry meterRegistry) {
@@ -79,6 +96,9 @@ public class ParseXmlService {
         this.importItemRepository = importItemRepository;
         this.fiscalDocumentRepository = fiscalDocumentRepository;
         this.registryRepository = registryRepository;
+        this.fiscalDocumentPaymentRepository = fiscalDocumentPaymentRepository;
+        this.fiscalDocumentDuplicateRepository = fiscalDocumentDuplicateRepository;
+        this.fiscalDocumentAdditionalInfoRepository = fiscalDocumentAdditionalInfoRepository;
         this.fiscalItemRepository = fiscalItemRepository;
         this.storageService = storageService;
         this.nfeXmlParser = new NfeXmlParser();
@@ -118,6 +138,9 @@ public class ParseXmlService {
             item.setAccessKey(parsed.accessKey());
             item.setIssueDate(parsed.issueDate());
             item.setXmlHash(xmlHash);
+            if (item.getXmlSize() == null || item.getXmlSize() <= 0) {
+                item.setXmlSize(payload.xmlSize());
+            }
             if (!StringUtils.hasText(item.getXmlPath())) {
                 item.setXmlPath(payload.xmlPath());
             }
@@ -140,16 +163,44 @@ public class ParseXmlService {
             doc.setEmpresaId(importacao.getEmpresaId());
             doc.setModel(parsed.model());
             doc.setAccessKey(parsed.accessKey());
+            doc.setNumeroNota(parsed.numeroNota());
+            doc.setSerie(parsed.serie());
+            doc.setNaturezaOperacao(parsed.naturezaOperacao());
             doc.setIssueDate(parsed.issueDate());
             doc.setIssueDateTime(parsed.issueDateTime());
+            doc.setAmbiente(parsed.ambiente());
+            doc.setFinalidadeEmissao(parsed.finalidadeEmissao());
+            doc.setConsumidorFinal(parsed.consumidorFinal());
+            doc.setPresencaComprador(parsed.presencaComprador());
             doc.setOperationType(parsed.operationType());
             doc.setEmitCnpj(parsed.emitCnpj());
+            doc.setEmitNome(parsed.emitName());
+            doc.setEmitIe(parsed.emitIe());
+            doc.setEmitUf(parsed.emitUf());
+            doc.setDestDocumento(parsed.destDocument());
             doc.setDestCnpj(parsed.destCnpj());
+            doc.setDestNome(parsed.destName());
+            doc.setDestIe(parsed.destIe());
+            doc.setDestUf(parsed.destUf());
             doc.setTotalProducts(parsed.totalProducts());
             doc.setTotalAmount(parsed.totalAmount());
+            doc.setTotalFrete(parsed.totalFrete());
+            doc.setTotalDesconto(parsed.totalDesconto());
+            doc.setTotalOutros(parsed.totalOutros());
+            doc.setTotalIpi(parsed.totalIpi());
+            doc.setTotalTributos(parsed.totalTributos());
             doc.setTotalIcms(parsed.totalIcms());
             doc.setTotalPis(parsed.totalPis());
             doc.setTotalCofins(parsed.totalCofins());
+            doc.setProtocoloNumero(parsed.protocoloNumero());
+            doc.setProtocoloStatus(parsed.protocoloStatus());
+            doc.setProtocoloMotivo(parsed.protocoloMotivo());
+            doc.setProtocoloRecebimento(parsed.protocoloRecebimento());
+            doc.setQrCodeUrl(parsed.qrCodeUrl());
+            doc.setFaturaNumero(parsed.faturaNumero());
+            doc.setFaturaValorOriginal(parsed.faturaValorOriginal());
+            doc.setFaturaValorDesconto(parsed.faturaValorDesconto());
+            doc.setFaturaValorLiquido(parsed.faturaValorLiquido());
             doc.setImportacao(importacao);
             doc.setXmlPath(resolveXmlPath(item, payload.xmlPath()));
             doc.setXmlHash(xmlHash);
@@ -170,6 +221,27 @@ public class ParseXmlService {
                         items.add(toFiscalItem(savedDoc, parsedItem));
                     }
                     fiscalItemRepository.saveAll(items);
+                }
+                if (!parsed.payments().isEmpty()) {
+                    java.util.List<FiscalDocumentPayment> payments = new java.util.ArrayList<>();
+                    for (ParsedNfePayment parsedPayment : parsed.payments()) {
+                        payments.add(toFiscalDocumentPayment(savedDoc, parsedPayment));
+                    }
+                    fiscalDocumentPaymentRepository.saveAll(payments);
+                }
+                if (!parsed.duplicates().isEmpty()) {
+                    java.util.List<FiscalDocumentDuplicate> duplicates = new java.util.ArrayList<>();
+                    for (ParsedNfeDuplicate parsedDuplicate : parsed.duplicates()) {
+                        duplicates.add(toFiscalDocumentDuplicate(savedDoc, parsedDuplicate));
+                    }
+                    fiscalDocumentDuplicateRepository.saveAll(duplicates);
+                }
+                if (!parsed.additionalInfos().isEmpty()) {
+                    java.util.List<FiscalDocumentAdditionalInfo> infos = new java.util.ArrayList<>();
+                    for (ParsedNfeAdditionalInfo parsedAdditionalInfo : parsed.additionalInfos()) {
+                        infos.add(toFiscalDocumentAdditionalInfo(savedDoc, parsedAdditionalInfo));
+                    }
+                    fiscalDocumentAdditionalInfoRepository.saveAll(infos);
                 }
 
                 item.setStatus(ImportItemStatus.PARSEADO);
@@ -252,10 +324,11 @@ public class ParseXmlService {
 
     private ParsedPayload parseXmlStream(InputStream inputStream, String xmlPath) throws Exception {
         MessageDigest digest = MessageDigest.getInstance("SHA-256");
-        DigestInputStream dis = new DigestInputStream(inputStream, digest);
+        CountingInputStream countingInputStream = new CountingInputStream(inputStream);
+        DigestInputStream dis = new DigestInputStream(countingInputStream, digest);
         ParsedNfe parsed = nfeXmlParser.parse(dis);
         String xmlHash = bytesToHex(digest.digest());
-        return new ParsedPayload(parsed, xmlHash, xmlPath);
+        return new ParsedPayload(parsed, xmlHash, xmlPath, countingInputStream.getCount());
     }
 
     private void finalizeImportacao(Importacao importacao, ImportItem item, boolean error) {
@@ -304,11 +377,72 @@ public class ParseXmlService {
         return item;
     }
 
+    private FiscalDocumentPayment toFiscalDocumentPayment(FiscalDocument doc, ParsedNfePayment parsed) {
+        FiscalDocumentPayment payment = new FiscalDocumentPayment();
+        payment.setDocument(doc);
+        payment.setPaymentIndicator(parsed.paymentIndicator());
+        payment.setPaymentType(parsed.paymentType());
+        payment.setPaymentAmount(parsed.paymentAmount());
+        payment.setCardIntegrationType(parsed.cardIntegrationType());
+        payment.setCardCnpj(parsed.cardCnpj());
+        payment.setCardBrand(parsed.cardBrand());
+        payment.setCardAuthorizationCode(parsed.cardAuthorizationCode());
+        return payment;
+    }
+
+    private FiscalDocumentDuplicate toFiscalDocumentDuplicate(FiscalDocument doc, ParsedNfeDuplicate parsed) {
+        FiscalDocumentDuplicate duplicate = new FiscalDocumentDuplicate();
+        duplicate.setDocument(doc);
+        duplicate.setDuplicateNumber(parsed.duplicateNumber());
+        duplicate.setDueDate(parsed.dueDate());
+        duplicate.setAmount(parsed.amount());
+        return duplicate;
+    }
+
+    private FiscalDocumentAdditionalInfo toFiscalDocumentAdditionalInfo(FiscalDocument doc, ParsedNfeAdditionalInfo parsed) {
+        FiscalDocumentAdditionalInfo info = new FiscalDocumentAdditionalInfo();
+        info.setDocument(doc);
+        info.setInfoType(parsed.infoType());
+        info.setFieldName(parsed.fieldName());
+        info.setTextValue(parsed.textValue());
+        return info;
+    }
+
     private String resolveXmlPath(ImportItem item, String parsedPath) {
         if (StringUtils.hasText(item.getXmlPath())) return item.getXmlPath();
         if (StringUtils.hasText(item.getStorageObjectKey())) return item.getStorageObjectKey();
         return parsedPath;
     }
 
-    private record ParsedPayload(ParsedNfe parsed, String xmlHash, String xmlPath) {}
+    private record ParsedPayload(ParsedNfe parsed, String xmlHash, String xmlPath, long xmlSize) {}
+
+    private static final class CountingInputStream extends FilterInputStream {
+        private long count = 0L;
+
+        private CountingInputStream(InputStream in) {
+            super(in);
+        }
+
+        @Override
+        public int read() throws IOException {
+            int value = super.read();
+            if (value >= 0) {
+                count++;
+            }
+            return value;
+        }
+
+        @Override
+        public int read(byte[] b, int off, int len) throws IOException {
+            int read = super.read(b, off, len);
+            if (read > 0) {
+                count += read;
+            }
+            return read;
+        }
+
+        public long getCount() {
+            return count;
+        }
+    }
 }

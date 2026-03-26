@@ -1,8 +1,14 @@
 package br.com.techbr.fiscalanalyzer.importacao.service;
 
 import br.com.techbr.fiscalanalyzer.common.exception.InfraException;
+import br.com.techbr.fiscalanalyzer.documento.model.FiscalDocumentAdditionalInfo;
+import br.com.techbr.fiscalanalyzer.documento.model.FiscalDocumentDuplicate;
 import br.com.techbr.fiscalanalyzer.documento.model.FiscalDocument;
+import br.com.techbr.fiscalanalyzer.documento.model.FiscalDocumentPayment;
 import br.com.techbr.fiscalanalyzer.documento.model.FiscalDocumentRegistry;
+import br.com.techbr.fiscalanalyzer.documento.repository.FiscalDocumentAdditionalInfoRepository;
+import br.com.techbr.fiscalanalyzer.documento.repository.FiscalDocumentDuplicateRepository;
+import br.com.techbr.fiscalanalyzer.documento.repository.FiscalDocumentPaymentRepository;
 import br.com.techbr.fiscalanalyzer.documento.repository.FiscalDocumentRegistryRepository;
 import br.com.techbr.fiscalanalyzer.documento.repository.FiscalDocumentRepository;
 import br.com.techbr.fiscalanalyzer.importacao.model.ImportItem;
@@ -36,6 +42,8 @@ import java.util.zip.ZipOutputStream;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.anyList;
@@ -56,6 +64,12 @@ class ParseXmlServiceTest {
     @Mock
     private FiscalDocumentRegistryRepository registryRepository;
     @Mock
+    private FiscalDocumentPaymentRepository fiscalDocumentPaymentRepository;
+    @Mock
+    private FiscalDocumentDuplicateRepository fiscalDocumentDuplicateRepository;
+    @Mock
+    private FiscalDocumentAdditionalInfoRepository fiscalDocumentAdditionalInfoRepository;
+    @Mock
     private FiscalItemRepository fiscalItemRepository;
     @Mock
     private StorageService storageService;
@@ -67,6 +81,9 @@ class ParseXmlServiceTest {
                 importItemRepository,
                 fiscalDocumentRepository,
                 registryRepository,
+                fiscalDocumentPaymentRepository,
+                fiscalDocumentDuplicateRepository,
+                fiscalDocumentAdditionalInfoRepository,
                 fiscalItemRepository,
                 storageService,
                 new SimpleMeterRegistry()
@@ -108,6 +125,9 @@ class ParseXmlServiceTest {
         assertEquals(ImportItemStatus.PARSEADO, last.getStatus());
         assertEquals("35191111111111111111550010000000011000000010", last.getAccessKey());
         assertEquals(LocalDate.of(2024, 1, 2), last.getIssueDate());
+        assertEquals(0, last.getXmlHash().length() % 2);
+        assertNotNull(last.getXmlSize());
+        assertTrue(last.getXmlSize() > 0L);
 
         verify(registryRepository, atLeastOnce()).save(any(FiscalDocumentRegistry.class));
     }
@@ -119,6 +139,9 @@ class ParseXmlServiceTest {
                 importItemRepository,
                 fiscalDocumentRepository,
                 registryRepository,
+                fiscalDocumentPaymentRepository,
+                fiscalDocumentDuplicateRepository,
+                fiscalDocumentAdditionalInfoRepository,
                 fiscalItemRepository,
                 storageService,
                 new SimpleMeterRegistry()
@@ -185,6 +208,9 @@ class ParseXmlServiceTest {
                 importItemRepository,
                 fiscalDocumentRepository,
                 registryRepository,
+                fiscalDocumentPaymentRepository,
+                fiscalDocumentDuplicateRepository,
+                fiscalDocumentAdditionalInfoRepository,
                 fiscalItemRepository,
                 storageService,
                 new SimpleMeterRegistry()
@@ -226,6 +252,9 @@ class ParseXmlServiceTest {
                 importItemRepository,
                 fiscalDocumentRepository,
                 registryRepository,
+                fiscalDocumentPaymentRepository,
+                fiscalDocumentDuplicateRepository,
+                fiscalDocumentAdditionalInfoRepository,
                 fiscalItemRepository,
                 storageService,
                 new SimpleMeterRegistry()
@@ -267,6 +296,9 @@ class ParseXmlServiceTest {
                 importItemRepository,
                 fiscalDocumentRepository,
                 registryRepository,
+                fiscalDocumentPaymentRepository,
+                fiscalDocumentDuplicateRepository,
+                fiscalDocumentAdditionalInfoRepository,
                 fiscalItemRepository,
                 storageService,
                 new SimpleMeterRegistry()
@@ -307,6 +339,143 @@ class ParseXmlServiceTest {
         ImportItem last = itemCaptor.getAllValues().get(itemCaptor.getAllValues().size() - 1);
         assertEquals(ImportItemStatus.PARSEADO, last.getStatus());
         assertEquals("35191111111111111111550010000000011000000010", last.getAccessKey());
+        assertNotNull(last.getXmlSize());
+        assertTrue(last.getXmlSize() > 0L);
+    }
+
+    @Test
+    void process_nfce_com_destinatarioCpf_persisteDocumento() {
+        ParseXmlService service = new ParseXmlService(
+                importacaoRepository,
+                importItemRepository,
+                fiscalDocumentRepository,
+                registryRepository,
+                fiscalDocumentPaymentRepository,
+                fiscalDocumentDuplicateRepository,
+                fiscalDocumentAdditionalInfoRepository,
+                fiscalItemRepository,
+                storageService,
+                new SimpleMeterRegistry()
+        );
+
+        Importacao importacao = new Importacao();
+        ReflectionTestUtils.setField(importacao, "id", 9L);
+        importacao.setTenantId(1L);
+        importacao.setEmpresaId(2L);
+
+        ImportItem item = new ImportItem();
+        ReflectionTestUtils.setField(item, "id", 19L);
+        item.setStatus(ImportItemStatus.PENDENTE_PARSE);
+        item.setXmlPath("99/99/nfce.xml");
+        item.setStorageObjectKey("99/99/nfce.xml");
+
+        when(importItemRepository.findById(19L)).thenReturn(Optional.of(item));
+        when(importacaoRepository.findById(9L)).thenReturn(Optional.of(importacao));
+        when(importacaoRepository.save(any(Importacao.class))).thenAnswer(i -> i.getArgument(0));
+        when(importItemRepository.save(any(ImportItem.class))).thenAnswer(i -> i.getArgument(0));
+        when(importItemRepository.countByImportacaoIdAndStatusIn(eq(9L), any(EnumSet.class))).thenReturn(0L);
+        when(registryRepository.findByTenantIdAndEmpresaIdAndAccessKey(eq(1L), eq(2L), any())).thenReturn(Optional.empty());
+        when(registryRepository.save(any(FiscalDocumentRegistry.class))).thenAnswer(i -> i.getArgument(0));
+        when(fiscalDocumentRepository.save(any(FiscalDocument.class))).thenAnswer(i -> i.getArgument(0));
+        when(storageService.get("99/99/nfce.xml"))
+                .thenReturn(new ByteArrayInputStream(nfceWithDestCpf().getBytes(StandardCharsets.UTF_8)));
+
+        service.process(new ParseXmlMessage(9L, 19L, "fiscal-raw", "99/99/nfce.xml", null, "abc"), "corr");
+
+        ArgumentCaptor<FiscalDocument> docCaptor = ArgumentCaptor.forClass(FiscalDocument.class);
+        verify(fiscalDocumentRepository).save(docCaptor.capture());
+        FiscalDocument savedDoc = docCaptor.getValue();
+        assertEquals((short) 65, savedDoc.getModel());
+        assertEquals("23168800023", savedDoc.getDestCnpj());
+        assertEquals("4.07", savedDoc.getTotalAmount().toString());
+    }
+
+    @Test
+    void process_camposFase2_persistePagamentosDuplicatasEObservacoes() {
+        ParseXmlService service = new ParseXmlService(
+                importacaoRepository,
+                importItemRepository,
+                fiscalDocumentRepository,
+                registryRepository,
+                fiscalDocumentPaymentRepository,
+                fiscalDocumentDuplicateRepository,
+                fiscalDocumentAdditionalInfoRepository,
+                fiscalItemRepository,
+                storageService,
+                new SimpleMeterRegistry()
+        );
+
+        Importacao importacao = new Importacao();
+        ReflectionTestUtils.setField(importacao, "id", 21L);
+        importacao.setTenantId(1L);
+        importacao.setEmpresaId(2L);
+
+        ImportItem item = new ImportItem();
+        ReflectionTestUtils.setField(item, "id", 121L);
+        item.setStatus(ImportItemStatus.PENDENTE_PARSE);
+        item.setXmlPath("99/99/fase2.xml");
+        item.setStorageObjectKey("99/99/fase2.xml");
+
+        when(importItemRepository.findById(121L)).thenReturn(Optional.of(item));
+        when(importacaoRepository.findById(21L)).thenReturn(Optional.of(importacao));
+        when(importacaoRepository.save(any(Importacao.class))).thenAnswer(i -> i.getArgument(0));
+        when(importItemRepository.save(any(ImportItem.class))).thenAnswer(i -> i.getArgument(0));
+        when(importItemRepository.countByImportacaoIdAndStatusIn(eq(21L), any(EnumSet.class))).thenReturn(0L);
+        when(registryRepository.findByTenantIdAndEmpresaIdAndAccessKey(eq(1L), eq(2L), any())).thenReturn(Optional.empty());
+        when(registryRepository.save(any(FiscalDocumentRegistry.class))).thenAnswer(i -> i.getArgument(0));
+        when(fiscalDocumentRepository.save(any(FiscalDocument.class))).thenAnswer(i -> i.getArgument(0));
+        when(fiscalDocumentPaymentRepository.saveAll(anyList())).thenAnswer(i -> i.getArgument(0));
+        when(fiscalDocumentDuplicateRepository.saveAll(anyList())).thenAnswer(i -> i.getArgument(0));
+        when(fiscalDocumentAdditionalInfoRepository.saveAll(anyList())).thenAnswer(i -> i.getArgument(0));
+        when(storageService.get("99/99/fase2.xml"))
+                .thenReturn(new ByteArrayInputStream(nfeWithPhase2Groups().getBytes(StandardCharsets.UTF_8)));
+
+        service.process(new ParseXmlMessage(21L, 121L, "fiscal-raw", "99/99/fase2.xml", null, "abc"), "corr");
+
+        ArgumentCaptor<FiscalDocument> docCaptor = ArgumentCaptor.forClass(FiscalDocument.class);
+        verify(fiscalDocumentRepository).save(docCaptor.capture());
+        FiscalDocument savedDoc = docCaptor.getValue();
+        assertEquals(Integer.valueOf(176272), savedDoc.getNumeroNota());
+        assertEquals("1", savedDoc.getSerie());
+        assertEquals("VENDA", savedDoc.getNaturezaOperacao());
+        assertEquals((short) 1, savedDoc.getAmbiente());
+        assertEquals((short) 1, savedDoc.getFinalidadeEmissao());
+        assertEquals((short) 0, savedDoc.getConsumidorFinal());
+        assertEquals((short) 3, savedDoc.getPresencaComprador());
+        assertEquals("EMITENTE TESTE", savedDoc.getEmitNome());
+        assertEquals("123456789", savedDoc.getEmitIe());
+        assertEquals("PE", savedDoc.getEmitUf());
+        assertEquals("12345678901", savedDoc.getDestDocumento());
+        assertEquals("DESTINATARIO TESTE", savedDoc.getDestNome());
+        assertEquals("88624.11", savedDoc.getTotalAmount().toString());
+        assertEquals("100.00", savedDoc.getTotalFrete().toString());
+        assertEquals("10.00", savedDoc.getTotalDesconto().toString());
+        assertEquals("5.00", savedDoc.getTotalOutros().toString());
+        assertEquals("2789.62", savedDoc.getTotalIpi().toString());
+        assertEquals("126250139789272", savedDoc.getProtocoloNumero());
+        assertEquals(Integer.valueOf(100), savedDoc.getProtocoloStatus());
+        assertEquals("Autorizado o uso da NF-e", savedDoc.getProtocoloMotivo());
+        assertEquals("0000176272", savedDoc.getFaturaNumero());
+        assertEquals("88624.11", savedDoc.getFaturaValorOriginal().toString());
+        assertEquals("0.00", savedDoc.getFaturaValorDesconto().toString());
+        assertEquals("88624.11", savedDoc.getFaturaValorLiquido().toString());
+        assertEquals("http://exemplo.local/consulta", savedDoc.getQrCodeUrl());
+
+        ArgumentCaptor<List<FiscalDocumentPayment>> paymentCaptor = ArgumentCaptor.forClass(List.class);
+        verify(fiscalDocumentPaymentRepository).saveAll(paymentCaptor.capture());
+        assertEquals(1, paymentCaptor.getValue().size());
+        assertEquals("03", paymentCaptor.getValue().getFirst().getPaymentType());
+        assertEquals("88624.11", paymentCaptor.getValue().getFirst().getPaymentAmount().toString());
+
+        ArgumentCaptor<List<FiscalDocumentDuplicate>> duplicateCaptor = ArgumentCaptor.forClass(List.class);
+        verify(fiscalDocumentDuplicateRepository).saveAll(duplicateCaptor.capture());
+        assertEquals(1, duplicateCaptor.getValue().size());
+        assertEquals("001", duplicateCaptor.getValue().getFirst().getDuplicateNumber());
+        assertEquals(LocalDate.of(2026, 1, 19), duplicateCaptor.getValue().getFirst().getDueDate());
+
+        ArgumentCaptor<List<FiscalDocumentAdditionalInfo>> infoCaptor = ArgumentCaptor.forClass(List.class);
+        verify(fiscalDocumentAdditionalInfoRepository).saveAll(infoCaptor.capture());
+        assertEquals(2, infoCaptor.getValue().size());
     }
 
     @Test
@@ -316,6 +485,9 @@ class ParseXmlServiceTest {
                 importItemRepository,
                 fiscalDocumentRepository,
                 registryRepository,
+                fiscalDocumentPaymentRepository,
+                fiscalDocumentDuplicateRepository,
+                fiscalDocumentAdditionalInfoRepository,
                 fiscalItemRepository,
                 storageService,
                 new SimpleMeterRegistry()
@@ -354,6 +526,9 @@ class ParseXmlServiceTest {
                 importItemRepository,
                 fiscalDocumentRepository,
                 registryRepository,
+                fiscalDocumentPaymentRepository,
+                fiscalDocumentDuplicateRepository,
+                fiscalDocumentAdditionalInfoRepository,
                 fiscalItemRepository,
                 storageService,
                 new SimpleMeterRegistry()
@@ -386,6 +561,9 @@ class ParseXmlServiceTest {
                 importItemRepository,
                 fiscalDocumentRepository,
                 registryRepository,
+                fiscalDocumentPaymentRepository,
+                fiscalDocumentDuplicateRepository,
+                fiscalDocumentAdditionalInfoRepository,
                 fiscalItemRepository,
                 storageService,
                 new SimpleMeterRegistry()
@@ -523,6 +701,114 @@ class ParseXmlServiceTest {
                     </total>
                   </infNFe>
                 </NFe>
+                """;
+    }
+
+    private String nfceWithDestCpf() {
+        return """
+                <nfeProc xmlns="http://www.portalfiscal.inf.br/nfe">
+                  <NFe>
+                    <infNFe Id="NFe26251052729931000390650060000031721472939584">
+                      <ide>
+                        <mod>65</mod>
+                        <tpNF>1</tpNF>
+                        <dhEmi>2025-10-01T08:18:08-03:00</dhEmi>
+                      </ide>
+                      <emit><CNPJ>52729931000390</CNPJ></emit>
+                      <dest><CPF>23168800023</CPF></dest>
+                      <total><ICMSTot><vNF>4.07</vNF></ICMSTot></total>
+                    </infNFe>
+                  </NFe>
+                </nfeProc>
+                """;
+    }
+
+    private String nfeWithPhase2Groups() {
+        return """
+                <nfeProc xmlns="http://www.portalfiscal.inf.br/nfe">
+                  <NFe>
+                    <infNFe Id="NFe26251216404287029056550010001762721022736522">
+                      <ide>
+                        <natOp>VENDA</natOp>
+                        <mod>55</mod>
+                        <serie>1</serie>
+                        <nNF>176272</nNF>
+                        <dhEmi>2025-12-19T10:53:06-03:00</dhEmi>
+                        <tpNF>1</tpNF>
+                        <tpAmb>1</tpAmb>
+                        <finNFe>1</finNFe>
+                        <indFinal>0</indFinal>
+                        <indPres>3</indPres>
+                      </ide>
+                      <emit>
+                        <CNPJ>16404287029056</CNPJ>
+                        <xNome>EMITENTE TESTE</xNome>
+                        <IE>123456789</IE>
+                        <enderEmit><UF>PE</UF></enderEmit>
+                      </emit>
+                      <dest>
+                        <CPF>12345678901</CPF>
+                        <xNome>DESTINATARIO TESTE</xNome>
+                        <IE>987654321</IE>
+                        <enderDest><UF>AL</UF></enderDest>
+                      </dest>
+                      <total>
+                        <ICMSTot>
+                          <vProd>85834.49</vProd>
+                          <vFrete>100.00</vFrete>
+                          <vDesc>10.00</vDesc>
+                          <vOutro>5.00</vOutro>
+                          <vIPI>2789.62</vIPI>
+                          <vPIS>1246.32</vPIS>
+                          <vCOFINS>5740.61</vCOFINS>
+                          <vICMS>10300.14</vICMS>
+                          <vNF>88624.11</vNF>
+                          <vTotTrib>999.99</vTotTrib>
+                        </ICMSTot>
+                      </total>
+                      <pag>
+                        <detPag>
+                          <indPag>1</indPag>
+                          <tPag>03</tPag>
+                          <vPag>88624.11</vPag>
+                          <card>
+                            <tpIntegra>1</tpIntegra>
+                            <CNPJ>01425787000104</CNPJ>
+                            <tBand>01</tBand>
+                            <cAut>AUT123</cAut>
+                          </card>
+                        </detPag>
+                      </pag>
+                      <cobr>
+                        <fat>
+                          <nFat>0000176272</nFat>
+                          <vOrig>88624.11</vOrig>
+                          <vDesc>0.00</vDesc>
+                          <vLiq>88624.11</vLiq>
+                        </fat>
+                        <dup>
+                          <nDup>001</nDup>
+                          <dVenc>2026-01-19</dVenc>
+                          <vDup>29541.96</vDup>
+                        </dup>
+                      </cobr>
+                      <infAdic>
+                        <infCpl>INFO COMPLEMENTAR</infCpl>
+                        <obsCont xCampo="OBSCONT"><xTexto>OBS TESTE</xTexto></obsCont>
+                      </infAdic>
+                    </infNFe>
+                    <infNFeSupl><qrCode>http://exemplo.local/consulta</qrCode></infNFeSupl>
+                  </NFe>
+                  <protNFe>
+                    <infProt>
+                      <chNFe>26251216404287029056550010001762721022736522</chNFe>
+                      <dhRecbto>2025-12-19T10:53:09-03:00</dhRecbto>
+                      <nProt>126250139789272</nProt>
+                      <cStat>100</cStat>
+                      <xMotivo>Autorizado o uso da NF-e</xMotivo>
+                    </infProt>
+                  </protNFe>
+                </nfeProc>
                 """;
     }
 }

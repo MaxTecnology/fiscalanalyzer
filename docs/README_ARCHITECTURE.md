@@ -212,6 +212,18 @@ Quando todos os itens de uma importação são processados:
 
 ---
 
+### 3.6 Fluxo de cobertura e backfill (Fase 3)
+1. API consulta cobertura agregada por tenant/empresa (`GET /documents/coverage`)
+2. Operação pode disparar backfill controlado (`POST /documents/coverage/backfill`)
+3. Serviço seleciona itens elegíveis (`PARSEADO`/`DUPLICADO`)
+4. XML é relido por origem:
+   - direto no storage (`storage_object_key`)
+   - ou ZIP legado (`arquivo_path` + `xml_path`)
+5. Campos/tabelas da cobertura fiscal são atualizados no `fiscal_document` e filhas
+6. Métricas de processado/atualizado/pulado/falha são publicadas
+
+---
+
 ## 4. Estrutura de pacotes (alto nível)
 
 A estrutura do código segue o domínio do problema:

@@ -36,6 +36,3 @@ build/
 .env
 .env.local
 .env.*.local
-
-### Docs ###
-docs/

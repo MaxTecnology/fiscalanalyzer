@@ -19,7 +19,7 @@
 @userId = 1
 @userEmail = admin@techbr.com
 @userPassword = Password@12
-@userJwt = eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJmaXNjYWxhbmFseXplciIsImF1ZCI6ImZpc2NhbGFuYWx5emVyLWFkbWluIiwic3ViIjoiMSIsImVtYWlsIjoiYWRtaW5AdGVjaGJyLmNvbSIsInJvbGVzIjpbIkFETUlOIl0sImlhdCI6MTc3NDQ4MDUzMywiZXhwIjoxNzc0NDg0MTMzfQ.ZnPFeXia8nfSmUSfFJipDBCwZV3968dycYnGyXh4oLw
+@userJwt = eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJmaXNjYWxhbmFseXplciIsImF1ZCI6ImZpc2NhbGFuYWx5emVyLWFkbWluIiwic3ViIjoiMSIsImVtYWlsIjoiYWRtaW5AdGVjaGJyLmNvbSIsInJvbGVzIjpbIkFETUlOIl0sImlhdCI6MTc3NDQ4MjA3OSwiZXhwIjoxNzc0NDg1Njc5fQ.Yk9e1weTDF_dFEb9qJb-9zEPwu7QknHRxESJqECGAkI
 @bootstrapToken = aca1aba00a82818f673b6de1f70ae7dce42294b19c36c368ab9712307d60a1ba
 
 ###
@@ -149,6 +149,16 @@ Authorization: Bearer {{userJwt}}
 ###
 ### Documento por chave de acesso
 GET {{baseUrl}}/documents/{{accessKey}}?tenantId={{tenantId}}&empresaId={{empresaId}}
+Authorization: Bearer {{userJwt}}
+
+###
+### Cobertura de documentos (resumo)
+GET {{baseUrl}}/documents/coverage?tenantId={{tenantId}}&empresaId={{empresaId}}
+Authorization: Bearer {{userJwt}}
+
+###
+### Cobertura de documentos (backfill controlado)
+POST {{baseUrl}}/documents/coverage/backfill?tenantId={{tenantId}}&empresaId={{empresaId}}&limit=500
 Authorization: Bearer {{userJwt}}
 
 ###
