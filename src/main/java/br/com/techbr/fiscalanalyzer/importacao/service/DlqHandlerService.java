@@ -30,10 +30,19 @@ public class DlqHandlerService {
 
     private static final Logger log = LoggerFactory.getLogger(DlqHandlerService.class);
 
-    private static final Set<ImportItemStatus> NON_FINAL_STATUSES = EnumSet.of(
-            ImportItemStatus.PENDENTE,
-            ImportItemStatus.PENDENTE_PARSE,
-            ImportItemStatus.PROCESSANDO
+    private static final Set<ImportItemStatus> PROCESSED_STATUSES = EnumSet.of(
+            ImportItemStatus.PARSEADO,
+            ImportItemStatus.DUPLICADO,
+            ImportItemStatus.FALHA_PARSE,
+            ImportItemStatus.CONCLUIDO,
+            ImportItemStatus.ERRO,
+            ImportItemStatus.FALHA_PERMANENTE
+    );
+
+    private static final Set<ImportItemStatus> ERROR_STATUSES = EnumSet.of(
+            ImportItemStatus.FALHA_PARSE,
+            ImportItemStatus.ERRO,
+            ImportItemStatus.FALHA_PERMANENTE
     );
 
     private final ImportItemRepository importItemRepository;
@@ -73,7 +82,7 @@ public class DlqHandlerService {
         log.error("dlq.handler.item_falha_permanente importacaoId={} importItemId={} causa={}",
                 importacaoId, importItemId, causa);
 
-        finalizarSeCompleto(importacaoId, true);
+        finalizarSeCompleto(importacaoId);
     }
 
     /**
@@ -99,18 +108,24 @@ public class DlqHandlerService {
         log.error("dlq.handler.importacao_falha_permanente importacaoId={} causa={}", importacaoId, causa);
     }
 
-    private void finalizarSeCompleto(long importacaoId, boolean hasError) {
-        Optional<Importacao> importacaoOpt = importacaoRepository.findById(importacaoId);
-        if (importacaoOpt.isEmpty()) return;
-
-        Importacao importacao = importacaoOpt.get();
-        if (hasError) {
-            importacao.setTotalProcessado(importacao.getTotalProcessado() + 1);
-            importacao.setTotalErros(importacao.getTotalErros() + 1);
+    private void finalizarSeCompleto(long importacaoId) {
+        Optional<Importacao> importacaoOpt = importacaoRepository.findByIdForUpdate(importacaoId);
+        if (importacaoOpt == null || importacaoOpt.isEmpty()) {
+            importacaoOpt = importacaoRepository.findById(importacaoId);
+            if (importacaoOpt.isEmpty()) {
+                return;
+            }
         }
 
-        long remaining = importItemRepository.countByImportacaoIdAndStatusIn(importacaoId, NON_FINAL_STATUSES);
-        if (remaining == 0) {
+        Importacao importacao = importacaoOpt.get();
+        long totalItems = importItemRepository.countByImportacaoId(importacaoId);
+        long processed = importItemRepository.countByImportacaoIdAndStatusIn(importacaoId, PROCESSED_STATUSES);
+        long errors = importItemRepository.countByImportacaoIdAndStatusIn(importacaoId, ERROR_STATUSES);
+
+        importacao.setTotalProcessado((int) processed);
+        importacao.setTotalErros((int) errors);
+
+        if (totalItems > 0 && processed >= totalItems) {
             importacao.setStatus(ImportacaoStatus.CONCLUIDO);
             log.info("dlq.handler.importacao_concluida importacaoId={}", importacaoId);
         }

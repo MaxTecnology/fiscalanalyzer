@@ -57,13 +57,22 @@ public class ParseXmlService {
             ImportItemStatus.PARSEADO,
             ImportItemStatus.DUPLICADO,
             ImportItemStatus.FALHA_PARSE,
+            ImportItemStatus.CONCLUIDO,
             ImportItemStatus.ERRO,
             ImportItemStatus.FALHA_PERMANENTE
     );
-    private static final Set<ImportItemStatus> NON_FINAL_STATUSES = EnumSet.of(
-            ImportItemStatus.PENDENTE,
-            ImportItemStatus.PENDENTE_PARSE,
-            ImportItemStatus.PROCESSANDO
+    private static final Set<ImportItemStatus> PROCESSED_STATUSES = EnumSet.of(
+            ImportItemStatus.PARSEADO,
+            ImportItemStatus.DUPLICADO,
+            ImportItemStatus.FALHA_PARSE,
+            ImportItemStatus.CONCLUIDO,
+            ImportItemStatus.ERRO,
+            ImportItemStatus.FALHA_PERMANENTE
+    );
+    private static final Set<ImportItemStatus> ERROR_STATUSES = EnumSet.of(
+            ImportItemStatus.FALHA_PARSE,
+            ImportItemStatus.ERRO,
+            ImportItemStatus.FALHA_PERMANENTE
     );
 
     private final ImportacaoRepository importacaoRepository;
@@ -332,18 +341,26 @@ public class ParseXmlService {
     }
 
     private void finalizeImportacao(Importacao importacao, ImportItem item, boolean error) {
-        importacao.setTotalProcessado(importacao.getTotalProcessado() + 1);
-        if (error) {
-            importacao.setTotalErros(importacao.getTotalErros() + 1);
+        Long importacaoId = importacao.getId();
+        Importacao lockedImportacao = importacao;
+
+        // Acquire row lock before recomputing counters to prevent stale totals caused by concurrent parse commits.
+        Optional<Importacao> lockedImportacaoOpt = importacaoRepository.findByIdForUpdate(importacaoId);
+        if (lockedImportacaoOpt != null && lockedImportacaoOpt.isPresent()) {
+            lockedImportacao = lockedImportacaoOpt.get();
         }
-        long remaining = importItemRepository.countByImportacaoIdAndStatusIn(
-                importacao.getId(),
-                NON_FINAL_STATUSES
-        );
-        if (remaining == 0) {
-            importacao.setStatus(ImportacaoStatus.CONCLUIDO);
+
+        long totalItems = importItemRepository.countByImportacaoId(importacaoId);
+        long processed = importItemRepository.countByImportacaoIdAndStatusIn(importacaoId, PROCESSED_STATUSES);
+        long errors = importItemRepository.countByImportacaoIdAndStatusIn(importacaoId, ERROR_STATUSES);
+
+        lockedImportacao.setTotalProcessado((int) processed);
+        lockedImportacao.setTotalErros((int) errors);
+
+        if (totalItems > 0 && processed >= totalItems) {
+            lockedImportacao.setStatus(ImportacaoStatus.CONCLUIDO);
         }
-        importacaoRepository.save(importacao);
+        importacaoRepository.save(lockedImportacao);
     }
 
     private String bytesToHex(byte[] bytes) {

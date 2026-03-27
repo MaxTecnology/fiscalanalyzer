@@ -118,6 +118,9 @@ class AgentManifestParseFlowTest {
         when(importacaoRepository.findById(anyLong())).thenAnswer(invocation ->
                 Optional.ofNullable(importacoes.get(invocation.getArgument(0, Long.class)))
         );
+        when(importacaoRepository.findByIdForUpdate(anyLong())).thenAnswer(invocation ->
+                Optional.ofNullable(importacoes.get(invocation.getArgument(0, Long.class)))
+        );
 
         when(importItemRepository.findByImportacaoIdAndXmlPath(anyLong(), anyString())).thenAnswer(invocation -> {
             Long importacaoId = invocation.getArgument(0, Long.class);
@@ -145,6 +148,12 @@ class AgentManifestParseFlowTest {
             return items.values().stream()
                     .filter(item -> item.getImportacao() != null && importacaoId.equals(item.getImportacao().getId()))
                     .filter(item -> statuses.contains(item.getStatus()))
+                    .count();
+        });
+        when(importItemRepository.countByImportacaoId(anyLong())).thenAnswer(invocation -> {
+            Long importacaoId = invocation.getArgument(0, Long.class);
+            return items.values().stream()
+                    .filter(item -> item.getImportacao() != null && importacaoId.equals(item.getImportacao().getId()))
                     .count();
         });
 

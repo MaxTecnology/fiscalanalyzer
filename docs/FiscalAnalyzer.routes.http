@@ -5,8 +5,8 @@
 
 @baseUrl = https://api.fiscalanalyzer.techbrsolucoes.com.br
 @baseUrlLocal = http://localhost:8080
-@tenantId = 99
-@empresaId = 99
+@tenantId = 1
+@empresaId = 1
 @importacaoId = 1
 @accessKey = 35191111111111111111550010000000011000000010
 @agentApiKey = fa_live_mZ2rerxKwrL8wzJ8w_t8r3hC9CvMvDsYzzW229eMjgQ
@@ -19,7 +19,7 @@
 @userId = 1
 @userEmail = admin@techbr.com
 @userPassword = Password@12
-@userJwt = eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJmaXNjYWxhbmFseXplciIsImF1ZCI6ImZpc2NhbGFuYWx5emVyLWFkbWluIiwic3ViIjoiMSIsImVtYWlsIjoiYWRtaW5AdGVjaGJyLmNvbSIsInJvbGVzIjpbIkFETUlOIl0sImlhdCI6MTc3NDQ4MjA3OSwiZXhwIjoxNzc0NDg1Njc5fQ.Yk9e1weTDF_dFEb9qJb-9zEPwu7QknHRxESJqECGAkI
+@userJwt = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJmaXNjYWxhbmFseXplciIsImF1ZCI6ImZpc2NhbGFuYWx5emVyLWFkbWluIiwic3ViIjoiMSIsImVtYWlsIjoiYWRtaW5AdGVjaGJyLmNvbSIsInJvbGVzIjpbIkFETUlOIl0sImlhdCI6MTc3NDU3NzY5OSwiZXhwIjoxNzc0NTgxMjk5fQ.fnC23F0vffw0CmdDP7t9pcNii3Cpf1IwJQQEaWDn2ZQ
 @bootstrapToken = aca1aba00a82818f673b6de1f70ae7dce42294b19c36c368ab9712307d60a1ba
 
 ###
