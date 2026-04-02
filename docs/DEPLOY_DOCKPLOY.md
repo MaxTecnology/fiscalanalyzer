@@ -31,6 +31,7 @@ Motivo:
 | `POSTGRES_PASSWORD` | sim | Senha de conexão do Postgres. |
 | `RABBITMQ_USER` | sim | Usuário do broker RabbitMQ. |
 | `RABBITMQ_PASSWORD` | sim | Senha do broker RabbitMQ. |
+| `RABBITMQ_MANAGEMENT_PORT` | não | Porta local do RabbitMQ Management (bind em `127.0.0.1`, padrão `15672`). |
 | `REDIS_HOST` | recomendado | Host do Redis (rate-limit/lockout distribuído). |
 | `REDIS_PORT` | recomendado | Porta do Redis (`6379` por padrão). |
 | `REDIS_PASSWORD` | não | Senha do Redis, quando habilitada. |
@@ -115,3 +116,21 @@ curl -s -H "Authorization: Bearer <JWT>" "https://<seu-dominio>/imports/<IMPORT_
 - Monitorar DLQ (`import.extract.dlq`, `import.parse.dlq`).
 - Restringir acesso ao RabbitMQ Management na rede interna/VPN.
 - Monitorar métricas de segurança conforme `docs/SECURITY_OPERATIONS_RUNBOOK.md`.
+
+---
+
+## 6. Acesso seguro ao RabbitMQ Management (túnel)
+
+O compose de Dockploy publica o RabbitMQ Management apenas em loopback do host:
+- `127.0.0.1:${RABBITMQ_MANAGEMENT_PORT:-15672}`
+
+Para acessar de fora, use túnel SSH:
+
+```bash
+ssh -N -L 15672:127.0.0.1:15672 <usuario>@<host>
+```
+
+Depois abra localmente:
+- `http://localhost:15672`
+
+Isso evita exposição pública do painel do RabbitMQ.

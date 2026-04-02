@@ -1,7 +1,6 @@
 services:
   postgres:
     image: postgres:16
-    container_name: fiscalanalyzer-postgres
     restart: unless-stopped
     environment:
       POSTGRES_DB: ${POSTGRES_DB:-fiscalanalyzer}
@@ -16,14 +15,19 @@ services:
       interval: 5s
       timeout: 3s
       retries: 20
+    logging:
+      options:
+        max-size: "10m"
+        max-file: "3"
 
   rabbitmq:
     image: rabbitmq:3-management
-    container_name: fiscalanalyzer-rabbitmq
     restart: unless-stopped
     environment:
       RABBITMQ_DEFAULT_USER: ${RABBITMQ_USER:-fiscalanalyzer}
       RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASSWORD:-fiscalanalyzer}
+    ports:
+      - "127.0.0.1:${RABBITMQ_MANAGEMENT_PORT:-15672}:15672"
     volumes:
       - fiscalanalyzer_rabbitmq_data:/var/lib/rabbitmq
     healthcheck:
@@ -31,10 +35,13 @@ services:
       interval: 5s
       timeout: 5s
       retries: 20
+    logging:
+      options:
+        max-size: "10m"
+        max-file: "3"
 
   redis:
     image: redis:7-alpine
-    container_name: fiscalanalyzer-redis
     restart: unless-stopped
     command: ["redis-server", "--appendonly", "yes"]
     volumes:
@@ -44,16 +51,19 @@ services:
       interval: 5s
       timeout: 3s
       retries: 20
+    logging:
+      options:
+        max-size: "10m"
+        max-file: "3"
 
   app:
     build:
       context: ..
       dockerfile: Dockerfile
-    container_name: fiscalanalyzer-app
     restart: unless-stopped
     environment:
-      TZ: America/Maceio
-      JAVA_TOOL_OPTIONS: -Duser.timezone=America/Maceio
+      TZ: ${APP_TIMEZONE:-America/Fortaleza}
+      JAVA_TOOL_OPTIONS: -Duser.timezone=${APP_TIMEZONE:-America/Fortaleza}
       SPRING_PROFILES_ACTIVE: docker
       DB_URL: jdbc:postgresql://postgres:5432/${POSTGRES_DB:-fiscalanalyzer}
       DB_USERNAME: ${POSTGRES_USER:-fiscalanalyzer}
@@ -94,6 +104,10 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
+    logging:
+      options:
+        max-size: "10m"
+        max-file: "3"
 
 volumes:
   fiscalanalyzer_pgdata:
