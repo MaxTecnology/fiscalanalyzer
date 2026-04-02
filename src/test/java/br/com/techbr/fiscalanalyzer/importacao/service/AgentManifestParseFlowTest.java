@@ -9,6 +9,7 @@ import br.com.techbr.fiscalanalyzer.documento.model.FiscalDocument;
 import br.com.techbr.fiscalanalyzer.documento.model.FiscalDocumentRegistry;
 import br.com.techbr.fiscalanalyzer.documento.repository.FiscalDocumentAdditionalInfoRepository;
 import br.com.techbr.fiscalanalyzer.documento.repository.FiscalDocumentDuplicateRepository;
+import br.com.techbr.fiscalanalyzer.documento.repository.FiscalDocumentEventRepository;
 import br.com.techbr.fiscalanalyzer.documento.repository.FiscalDocumentPaymentRepository;
 import br.com.techbr.fiscalanalyzer.documento.repository.FiscalDocumentRegistryRepository;
 import br.com.techbr.fiscalanalyzer.documento.repository.FiscalDocumentRepository;
@@ -64,6 +65,7 @@ class AgentManifestParseFlowTest {
         ImportacaoRepository importacaoRepository = mock(ImportacaoRepository.class);
         ImportItemRepository importItemRepository = mock(ImportItemRepository.class);
         FiscalDocumentRepository fiscalDocumentRepository = mock(FiscalDocumentRepository.class);
+        FiscalDocumentEventRepository fiscalDocumentEventRepository = mock(FiscalDocumentEventRepository.class);
         FiscalDocumentRegistryRepository registryRepository = mock(FiscalDocumentRegistryRepository.class);
         FiscalDocumentPaymentRepository fiscalDocumentPaymentRepository = mock(FiscalDocumentPaymentRepository.class);
         FiscalDocumentDuplicateRepository fiscalDocumentDuplicateRepository = mock(FiscalDocumentDuplicateRepository.class);
@@ -89,6 +91,7 @@ class AgentManifestParseFlowTest {
                 importacaoRepository,
                 importItemRepository,
                 fiscalDocumentRepository,
+                fiscalDocumentEventRepository,
                 registryRepository,
                 fiscalDocumentPaymentRepository,
                 fiscalDocumentDuplicateRepository,

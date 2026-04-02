@@ -4,10 +4,13 @@ import br.com.techbr.fiscalanalyzer.common.exception.InfraException;
 import br.com.techbr.fiscalanalyzer.documento.model.FiscalDocumentAdditionalInfo;
 import br.com.techbr.fiscalanalyzer.documento.model.FiscalDocumentDuplicate;
 import br.com.techbr.fiscalanalyzer.documento.model.FiscalDocument;
+import br.com.techbr.fiscalanalyzer.documento.model.FiscalDocumentEvent;
 import br.com.techbr.fiscalanalyzer.documento.model.FiscalDocumentPayment;
 import br.com.techbr.fiscalanalyzer.documento.model.FiscalDocumentRegistry;
+import br.com.techbr.fiscalanalyzer.documento.model.FiscalDocumentStatus;
 import br.com.techbr.fiscalanalyzer.documento.repository.FiscalDocumentAdditionalInfoRepository;
 import br.com.techbr.fiscalanalyzer.documento.repository.FiscalDocumentDuplicateRepository;
+import br.com.techbr.fiscalanalyzer.documento.repository.FiscalDocumentEventRepository;
 import br.com.techbr.fiscalanalyzer.documento.repository.FiscalDocumentPaymentRepository;
 import br.com.techbr.fiscalanalyzer.documento.repository.FiscalDocumentRegistryRepository;
 import br.com.techbr.fiscalanalyzer.documento.repository.FiscalDocumentRepository;
@@ -47,6 +50,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.anyList;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -61,6 +65,8 @@ class ParseXmlServiceTest {
     private ImportItemRepository importItemRepository;
     @Mock
     private FiscalDocumentRepository fiscalDocumentRepository;
+    @Mock
+    private FiscalDocumentEventRepository fiscalDocumentEventRepository;
     @Mock
     private FiscalDocumentRegistryRepository registryRepository;
     @Mock
@@ -80,6 +86,7 @@ class ParseXmlServiceTest {
                 importacaoRepository,
                 importItemRepository,
                 fiscalDocumentRepository,
+                fiscalDocumentEventRepository,
                 registryRepository,
                 fiscalDocumentPaymentRepository,
                 fiscalDocumentDuplicateRepository,
@@ -138,6 +145,7 @@ class ParseXmlServiceTest {
                 importacaoRepository,
                 importItemRepository,
                 fiscalDocumentRepository,
+                fiscalDocumentEventRepository,
                 registryRepository,
                 fiscalDocumentPaymentRepository,
                 fiscalDocumentDuplicateRepository,
@@ -207,6 +215,7 @@ class ParseXmlServiceTest {
                 importacaoRepository,
                 importItemRepository,
                 fiscalDocumentRepository,
+                fiscalDocumentEventRepository,
                 registryRepository,
                 fiscalDocumentPaymentRepository,
                 fiscalDocumentDuplicateRepository,
@@ -251,6 +260,7 @@ class ParseXmlServiceTest {
                 importacaoRepository,
                 importItemRepository,
                 fiscalDocumentRepository,
+                fiscalDocumentEventRepository,
                 registryRepository,
                 fiscalDocumentPaymentRepository,
                 fiscalDocumentDuplicateRepository,
@@ -295,6 +305,7 @@ class ParseXmlServiceTest {
                 importacaoRepository,
                 importItemRepository,
                 fiscalDocumentRepository,
+                fiscalDocumentEventRepository,
                 registryRepository,
                 fiscalDocumentPaymentRepository,
                 fiscalDocumentDuplicateRepository,
@@ -349,6 +360,7 @@ class ParseXmlServiceTest {
                 importacaoRepository,
                 importItemRepository,
                 fiscalDocumentRepository,
+                fiscalDocumentEventRepository,
                 registryRepository,
                 fiscalDocumentPaymentRepository,
                 fiscalDocumentDuplicateRepository,
@@ -396,6 +408,7 @@ class ParseXmlServiceTest {
                 importacaoRepository,
                 importItemRepository,
                 fiscalDocumentRepository,
+                fiscalDocumentEventRepository,
                 registryRepository,
                 fiscalDocumentPaymentRepository,
                 fiscalDocumentDuplicateRepository,
@@ -479,11 +492,149 @@ class ParseXmlServiceTest {
     }
 
     @Test
+    void process_eventoCancelamento_comDocumentoExistente_marcaDocumentoCancelado() {
+        ParseXmlService service = new ParseXmlService(
+                importacaoRepository,
+                importItemRepository,
+                fiscalDocumentRepository,
+                fiscalDocumentEventRepository,
+                registryRepository,
+                fiscalDocumentPaymentRepository,
+                fiscalDocumentDuplicateRepository,
+                fiscalDocumentAdditionalInfoRepository,
+                fiscalItemRepository,
+                storageService,
+                new SimpleMeterRegistry()
+        );
+
+        Importacao importacao = new Importacao();
+        ReflectionTestUtils.setField(importacao, "id", 22L);
+        importacao.setTenantId(1L);
+        importacao.setEmpresaId(2L);
+
+        ImportItem item = new ImportItem();
+        ReflectionTestUtils.setField(item, "id", 122L);
+        item.setStatus(ImportItemStatus.PENDENTE_PARSE);
+        item.setXmlPath("99/99/evento.xml");
+        item.setStorageObjectKey("99/99/evento.xml");
+
+        FiscalDocument document = new FiscalDocument();
+        ReflectionTestUtils.setField(document, "id", 700L);
+        document.setTenantId(1L);
+        document.setEmpresaId(2L);
+        document.setAccessKey("27240629422082000144653010001324061620508982");
+        document.setModel((short) 65);
+        document.setIssueDate(LocalDate.of(2024, 6, 20));
+        document.setOperationType("S");
+        document.setEmitCnpj("29422082000144");
+        document.setTotalAmount(new java.math.BigDecimal("10.00"));
+        document.setXmlPath("doc.xml");
+        document.setXmlHash("a".repeat(64));
+        document.setStatusDocumento(FiscalDocumentStatus.ATIVA);
+
+        when(importItemRepository.findById(122L)).thenReturn(Optional.of(item));
+        when(importacaoRepository.findById(22L)).thenReturn(Optional.of(importacao));
+        when(importacaoRepository.save(any(Importacao.class))).thenAnswer(i -> i.getArgument(0));
+        when(importItemRepository.save(any(ImportItem.class))).thenAnswer(i -> i.getArgument(0));
+        when(importItemRepository.countByImportacaoId(eq(22L))).thenReturn(1L);
+        when(importItemRepository.countByImportacaoIdAndStatusIn(eq(22L), any(EnumSet.class))).thenReturn(1L, 0L);
+        when(fiscalDocumentEventRepository.findByTenantIdAndEmpresaIdAndEventId(eq(1L), eq(2L), anyString()))
+                .thenReturn(Optional.empty());
+        when(fiscalDocumentRepository.findByTenantIdAndEmpresaIdAndAccessKey(eq(1L), eq(2L), anyString()))
+                .thenReturn(Optional.of(document));
+        when(fiscalDocumentEventRepository.save(any(FiscalDocumentEvent.class))).thenAnswer(i -> i.getArgument(0));
+        when(fiscalDocumentRepository.save(any(FiscalDocument.class))).thenAnswer(i -> i.getArgument(0));
+        when(storageService.get("99/99/evento.xml"))
+                .thenReturn(new ByteArrayInputStream(eventoCancelamentoXml().getBytes(StandardCharsets.UTF_8)));
+
+        service.process(new ParseXmlMessage(22L, 122L, "fiscal-raw", "99/99/evento.xml", null, "abc"), "corr");
+
+        assertEquals(FiscalDocumentStatus.CANCELADA, document.getStatusDocumento());
+        assertEquals("227240040314839", document.getCancelProtocol());
+        assertEquals("Evento registrado e vinculado a NF-e", document.getCancelReason());
+        assertEquals(ImportItemStatus.PARSEADO, item.getStatus());
+    }
+
+    @Test
+    void process_documento_comEventoPendente_vinculaECancela() throws Exception {
+        ParseXmlService service = new ParseXmlService(
+                importacaoRepository,
+                importItemRepository,
+                fiscalDocumentRepository,
+                fiscalDocumentEventRepository,
+                registryRepository,
+                fiscalDocumentPaymentRepository,
+                fiscalDocumentDuplicateRepository,
+                fiscalDocumentAdditionalInfoRepository,
+                fiscalItemRepository,
+                storageService,
+                new SimpleMeterRegistry()
+        );
+
+        Importacao importacao = new Importacao();
+        ReflectionTestUtils.setField(importacao, "id", 23L);
+        importacao.setTenantId(1L);
+        importacao.setEmpresaId(2L);
+
+        ImportItem item = new ImportItem();
+        ReflectionTestUtils.setField(item, "id", 123L);
+        item.setStatus(ImportItemStatus.PENDENTE_PARSE);
+        item.setXmlPath("99/99/nfe.xml");
+        item.setStorageObjectKey("99/99/nfe.xml");
+
+        FiscalDocumentEvent pendingEvent = new FiscalDocumentEvent();
+        pendingEvent.setTenantId(1L);
+        pendingEvent.setEmpresaId(2L);
+        pendingEvent.setAccessKey("35191111111111111111550010000000011000000010");
+        pendingEvent.setModel((short) 55);
+        pendingEvent.setEventId("ID110111PENDENTE");
+        pendingEvent.setEventType("110111");
+        pendingEvent.setEventDescription("Cancelamento");
+        pendingEvent.setEventSequence(1);
+        pendingEvent.setEventDatetime(java.time.OffsetDateTime.parse("2024-01-02T12:00:00-03:00").toInstant());
+        pendingEvent.setEventStatus(135);
+        pendingEvent.setEventStatusReason("Evento registrado e vinculado a NF-e");
+        pendingEvent.setEventProtocol("127240000000001");
+        pendingEvent.setXmlPath("99/99/evento.xml");
+        pendingEvent.setXmlHash("b".repeat(64));
+
+        when(importItemRepository.findById(123L)).thenReturn(Optional.of(item));
+        when(importacaoRepository.findById(23L)).thenReturn(Optional.of(importacao));
+        when(importacaoRepository.save(any(Importacao.class))).thenAnswer(i -> i.getArgument(0));
+        when(importItemRepository.save(any(ImportItem.class))).thenAnswer(i -> i.getArgument(0));
+        when(importItemRepository.countByImportacaoId(eq(23L))).thenReturn(1L);
+        when(importItemRepository.countByImportacaoIdAndStatusIn(eq(23L), any(EnumSet.class))).thenReturn(1L, 0L);
+        when(registryRepository.findByTenantIdAndEmpresaIdAndAccessKey(eq(1L), eq(2L), any()))
+                .thenReturn(Optional.empty());
+        when(registryRepository.save(any(FiscalDocumentRegistry.class))).thenAnswer(i -> i.getArgument(0));
+        when(fiscalDocumentRepository.save(any(FiscalDocument.class))).thenAnswer(i -> i.getArgument(0));
+        when(fiscalDocumentEventRepository.findByTenantIdAndEmpresaIdAndAccessKeyOrderByCreatedAtAsc(
+                eq(1L), eq(2L), eq("35191111111111111111550010000000011000000010")
+        )).thenReturn(List.of(pendingEvent));
+        when(fiscalDocumentEventRepository.save(any(FiscalDocumentEvent.class))).thenAnswer(i -> i.getArgument(0));
+
+        byte[] zip = buildZipWithXml("a.xml", minimalNfeXmlWithNamespace());
+        when(storageService.get("99/99/nfe.xml")).thenReturn(new ByteArrayInputStream(zip));
+
+        service.process(new ParseXmlMessage(23L, 123L, "fiscal-raw", "99/99/nfe.xml", "a.xml", "abc"), "corr");
+
+        assertEquals(ImportItemStatus.PARSEADO, item.getStatus());
+
+        ArgumentCaptor<FiscalDocument> docCaptor = ArgumentCaptor.forClass(FiscalDocument.class);
+        verify(fiscalDocumentRepository, atLeastOnce()).save(docCaptor.capture());
+        FiscalDocument lastDoc = docCaptor.getAllValues().get(docCaptor.getAllValues().size() - 1);
+        assertEquals(FiscalDocumentStatus.CANCELADA, lastDoc.getStatusDocumento());
+        assertEquals("127240000000001", lastDoc.getCancelProtocol());
+        assertEquals("Evento registrado e vinculado a NF-e", lastDoc.getCancelReason());
+    }
+
+    @Test
     void process_xmlInvalido_marcaFalha() throws Exception {
         ParseXmlService service = new ParseXmlService(
                 importacaoRepository,
                 importItemRepository,
                 fiscalDocumentRepository,
+                fiscalDocumentEventRepository,
                 registryRepository,
                 fiscalDocumentPaymentRepository,
                 fiscalDocumentDuplicateRepository,
@@ -525,6 +676,7 @@ class ParseXmlServiceTest {
                 importacaoRepository,
                 importItemRepository,
                 fiscalDocumentRepository,
+                fiscalDocumentEventRepository,
                 registryRepository,
                 fiscalDocumentPaymentRepository,
                 fiscalDocumentDuplicateRepository,
@@ -560,6 +712,7 @@ class ParseXmlServiceTest {
                 importacaoRepository,
                 importItemRepository,
                 fiscalDocumentRepository,
+                fiscalDocumentEventRepository,
                 registryRepository,
                 fiscalDocumentPaymentRepository,
                 fiscalDocumentDuplicateRepository,
@@ -809,6 +962,33 @@ class ParseXmlServiceTest {
                     </infProt>
                   </protNFe>
                 </nfeProc>
+                """;
+    }
+
+    private String eventoCancelamentoXml() {
+        return """
+                <procEventoNFe xmlns="http://www.portalfiscal.inf.br/nfe">
+                  <evento>
+                    <infEvento Id="ID1101112724062942208200014465301000132406162050898201">
+                      <CNPJ>29422082000144</CNPJ>
+                      <chNFe>27240629422082000144653010001324061620508982</chNFe>
+                      <dhEvento>2024-06-20T18:02:27-03:00</dhEvento>
+                      <tpEvento>110111</tpEvento>
+                      <nSeqEvento>1</nSeqEvento>
+                      <detEvento>
+                        <descEvento>Cancelamento</descEvento>
+                        <nProt>227240040307925</nProt>
+                      </detEvento>
+                    </infEvento>
+                  </evento>
+                  <retEvento>
+                    <infEvento>
+                      <cStat>135</cStat>
+                      <xMotivo>Evento registrado e vinculado a NF-e</xMotivo>
+                      <nProt>227240040314839</nProt>
+                    </infEvento>
+                  </retEvento>
+                </procEventoNFe>
                 """;
     }
 }

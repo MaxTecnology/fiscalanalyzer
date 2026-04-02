@@ -74,13 +74,14 @@ O parser é o núcleo do sistema.
 Princípios:
 - leitura **streaming** (StAX/SAX)
 - baixo consumo de memória
-- um único parser para NF-e e NFC-e
+- parser de documento (NF-e/NFC-e) e parser de evento (procEventoNFe/evento)
 - diferenciação por `ide.mod` (55 ou 65)
 
 Responsabilidades:
 - ler XML
 - validar estrutura mínima
 - mapear para modelos canônicos internos
+- classificar documento vs evento fiscal sem carregar XML inteiro
 - nunca acessar banco ou fila
 
 ---
@@ -200,10 +201,13 @@ Status atual:
 ### 3.3 Parsing
 1. Worker consome mensagem de parsing
 2. XML é lido em streaming
-3. Modelo (55/65) é identificado
-4. Documento e itens são mapeados
-5. Dados são persistidos
-6. Status do item é atualizado
+3. Tipo de XML é identificado:
+   - documento fiscal (`NFe`/`nfeProc`)
+   - evento fiscal (`evento`/`procEventoNFe`)
+4. Se documento: modelo (55/65), cabeçalho e itens são mapeados e persistidos
+5. Se evento: dados do evento são persistidos e vinculados ao documento por `access_key`
+6. Regras de efeito são aplicadas (ex.: cancelamento `110111` aceito marca documento como `CANCELADA`)
+7. Status do item é atualizado
 
 ---
 

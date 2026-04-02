@@ -40,7 +40,11 @@ public class DocumentQueryService {
                 doc.getTotalAmount(),
                 doc.getImportacao() != null ? doc.getImportacao().getId() : null,
                 doc.getXmlPath(),
-                doc.getXmlHash()
+                doc.getXmlHash(),
+                doc.getStatusDocumento() != null ? doc.getStatusDocumento().name() : null,
+                doc.getCancelledAt(),
+                doc.getCancelProtocol(),
+                doc.getCancelReason()
         );
     }
 }

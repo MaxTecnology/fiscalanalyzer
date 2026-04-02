@@ -67,6 +67,24 @@
     - ou `importacao.arquivo_path` + `import_item.xml_path` (ZIP legado)
 - Reprocesso mantém idempotência por documento existente (`tenant_id`, `empresa_id`, `access_key`).
 
+## Eventos fiscais e cancelamento (V22)
+- Nova tabela `fiscal_document_event` para persistir XMLs de evento (`procEventoNFe` / `evento`).
+- Campos principais:
+    - escopo: `tenant_id`, `empresa_id`
+    - vínculo: `fiscal_document_id` (nullable, para evento chegar antes do documento)
+    - chave da nota: `access_key`
+    - identificação do evento: `event_id`, `event_type`, `event_sequence`
+    - retorno Sefaz: `event_status`, `event_status_reason`, `event_protocol`
+    - metadados: `event_datetime`, `event_registration_datetime`, `xml_path`, `xml_hash`
+- Idempotência de evento:
+    - `UNIQUE (tenant_id, empresa_id, event_id)`
+- `fiscal_document` recebeu colunas de estado:
+    - `status_documento` (`ATIVA` ou `CANCELADA`)
+    - `cancelled_at`, `cancel_event_id`, `cancel_reason`, `cancel_protocol`, `cancel_sequence`
+- Regra de aplicação:
+    - evento `110111` (cancelamento) com retorno aceito (`cStat` 135/136/155) marca o documento como `CANCELADA`.
+    - documento não é apagado; apenas estado e metadados de cancelamento são atualizados.
+
 ## Identidade e governança (decisão 2026-03-25)
 - `tenant` e `empresa` são entidades mestre internas do FiscalAnalyzer.
 - `tenant_id` e `empresa_id` não podem existir “soltos” nas tabelas de domínio.

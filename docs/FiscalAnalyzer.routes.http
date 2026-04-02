@@ -148,6 +148,9 @@ Authorization: Bearer {{userJwt}}
 
 ###
 ### Documento por chave de acesso
+### Retorna também estado atual da nota:
+### - statusDocumento (ATIVA/CANCELADA)
+### - cancelledAt, cancelProtocol, cancelReason (quando houver evento de cancelamento aplicado)
 GET {{baseUrl}}/documents/{{accessKey}}?tenantId={{tenantId}}&empresaId={{empresaId}}
 Authorization: Bearer {{userJwt}}
 

@@ -59,6 +59,10 @@ public class FiscalDocument {
     @Column(name = "operation_type", nullable = false, length = 1)
     private String operationType; // 'E' ou 'S'
 
+    @Enumerated(EnumType.STRING)
+    @Column(name = "status_documento", nullable = false, length = 20)
+    private FiscalDocumentStatus statusDocumento = FiscalDocumentStatus.ATIVA;
+
     @Column(name = "emit_cnpj", nullable = false, length = 14)
     private String emitCnpj;
 
@@ -155,11 +159,28 @@ public class FiscalDocument {
     @Column(name = "fatura_valor_liquido", precision = 15, scale = 2)
     private BigDecimal faturaValorLiquido;
 
+    @Column(name = "cancelled_at")
+    private Instant cancelledAt;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "cancel_event_id")
+    private FiscalDocumentEvent cancelEvent;
+
+    @Column(name = "cancel_reason", columnDefinition = "text")
+    private String cancelReason;
+
+    @Column(name = "cancel_protocol", length = 32)
+    private String cancelProtocol;
+
+    @Column(name = "cancel_sequence")
+    private Integer cancelSequence;
+
     @Column(name = "created_at", nullable = false)
     private Instant createdAt;
 
     @PrePersist
     void prePersist() {
+        if (statusDocumento == null) statusDocumento = FiscalDocumentStatus.ATIVA;
         if (createdAt == null) createdAt = Instant.now();
     }
 
@@ -193,6 +214,8 @@ public class FiscalDocument {
     public void setPresencaComprador(Short presencaComprador) { this.presencaComprador = presencaComprador; }
     public String getOperationType() { return operationType; }
     public void setOperationType(String operationType) { this.operationType = operationType; }
+    public FiscalDocumentStatus getStatusDocumento() { return statusDocumento; }
+    public void setStatusDocumento(FiscalDocumentStatus statusDocumento) { this.statusDocumento = statusDocumento; }
     public String getEmitCnpj() { return emitCnpj; }
     public void setEmitCnpj(String emitCnpj) { this.emitCnpj = emitCnpj; }
     public String getEmitNome() { return emitNome; }
@@ -255,5 +278,15 @@ public class FiscalDocument {
     public void setFaturaValorDesconto(BigDecimal faturaValorDesconto) { this.faturaValorDesconto = faturaValorDesconto; }
     public BigDecimal getFaturaValorLiquido() { return faturaValorLiquido; }
     public void setFaturaValorLiquido(BigDecimal faturaValorLiquido) { this.faturaValorLiquido = faturaValorLiquido; }
+    public Instant getCancelledAt() { return cancelledAt; }
+    public void setCancelledAt(Instant cancelledAt) { this.cancelledAt = cancelledAt; }
+    public FiscalDocumentEvent getCancelEvent() { return cancelEvent; }
+    public void setCancelEvent(FiscalDocumentEvent cancelEvent) { this.cancelEvent = cancelEvent; }
+    public String getCancelReason() { return cancelReason; }
+    public void setCancelReason(String cancelReason) { this.cancelReason = cancelReason; }
+    public String getCancelProtocol() { return cancelProtocol; }
+    public void setCancelProtocol(String cancelProtocol) { this.cancelProtocol = cancelProtocol; }
+    public Integer getCancelSequence() { return cancelSequence; }
+    public void setCancelSequence(Integer cancelSequence) { this.cancelSequence = cancelSequence; }
     public Instant getCreatedAt() { return createdAt; }
 }

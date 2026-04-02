@@ -55,7 +55,11 @@ class DocumentControllerTest {
                 new BigDecimal("123.45"),
                 1L,
                 "a.xml",
-                "hash"
+                "hash",
+                "ATIVA",
+                null,
+                null,
+                null
         );
         when(service.findByAccessKey(1L, 2L, "35191111111111111111550010000000011000000010")).thenReturn(response);
 

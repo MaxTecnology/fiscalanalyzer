@@ -11,6 +11,9 @@ garantindo consistência de nomenclatura, fluxo e regras.
 O FiscalAnalyzer é uma plataforma web para **ingestão, armazenamento e análise** de documentos fiscais
 em formato **XML** (NF-e modelo 55 e NFC-e modelo 65).
 
+Além dos documentos, o sistema também processa XMLs de **eventos fiscais**
+(ex.: cancelamento), vinculando-os à nota por chave de acesso.
+
 O sistema importa arquivos em lote (principalmente via `.zip`), extrai os XMLs, lê em modo streaming,
 normaliza os dados e persiste no banco para consultas e cálculos fiscais.
 
@@ -26,6 +29,7 @@ são predominantemente determinados por CFOP/CST/CSOSN/NCM e bases por item.
 
 ### 2.1 Incluído
 - Importação em lote de XMLs de **NF-e (55)** e **NFC-e (65)**.
+- Importação de XML de **evento fiscal** (`procEventoNFe`/`evento`) com vínculo por `access_key`.
 - Upload de arquivo `.zip` contendo XMLs e subpastas misturadas.
 - Ingestão em alto volume via manifesto de objetos no storage.
 - Processamento assíncrono via fila (RabbitMQ) com workers.
@@ -110,6 +114,21 @@ O **Agente** (desktop/headless) roda no ambiente do cliente para:
 - gerar e enviar manifesto para a API
 - retomar processamento em caso de falha/rede instável
 
+### 3.6 Evento Fiscal
+Um **Evento Fiscal** representa uma alteração de estado ou manifestação sobre uma nota.
+No sistema, chamamos de `fiscal_document_event`.
+
+Campos principais:
+- `event_id` (Id do `infEvento`)
+- `event_type` (ex.: `110111` cancelamento)
+- `event_sequence` (`nSeqEvento`)
+- `event_status` / `event_status_reason` (retorno Sefaz)
+- `event_protocol`
+- `access_key` (chave da nota vinculada)
+
+Efeito de domínio implementado:
+- `event_type=110111` com retorno aceito (`cStat` 135/136/155) marca a nota como `CANCELADA`.
+
 ---
 
 ## 4. Princípios do sistema
@@ -146,6 +165,7 @@ XML deve ser lido em streaming (StAX/SAX) para reduzir consumo de memória e per
 - Os XMLs podem estar em subpastas.
 - Nem toda NFC-e terá destinatário (`dest_cnpj` pode ser nulo).
 - Campos fiscais podem estar ausentes ou malformados; isso gera erro no `import_item`.
+- Evento pode chegar antes da nota; nesse caso fica persistido e é vinculado quando o documento for importado.
 
 ---
 
