@@ -671,6 +671,54 @@ class ParseXmlServiceTest {
     }
 
     @Test
+    void process_xmlTipoNaoSuportado_informaRootNoErro() throws Exception {
+        ParseXmlService service = new ParseXmlService(
+                importacaoRepository,
+                importItemRepository,
+                fiscalDocumentRepository,
+                fiscalDocumentEventRepository,
+                registryRepository,
+                fiscalDocumentPaymentRepository,
+                fiscalDocumentDuplicateRepository,
+                fiscalDocumentAdditionalInfoRepository,
+                fiscalItemRepository,
+                storageService,
+                new SimpleMeterRegistry()
+        );
+
+        Importacao importacao = new Importacao();
+        ReflectionTestUtils.setField(importacao, "id", 31L);
+        importacao.setTenantId(1L);
+        importacao.setEmpresaId(2L);
+
+        ImportItem item = new ImportItem();
+        ReflectionTestUtils.setField(item, "id", 312L);
+        item.setStatus(ImportItemStatus.PENDENTE_PARSE);
+
+        when(importItemRepository.findById(312L)).thenReturn(Optional.of(item));
+        when(importacaoRepository.findById(31L)).thenReturn(Optional.of(importacao));
+        when(importacaoRepository.save(any(Importacao.class))).thenAnswer(i -> i.getArgument(0));
+        when(importItemRepository.save(any(ImportItem.class))).thenAnswer(i -> i.getArgument(0));
+        when(importItemRepository.countByImportacaoIdAndStatusIn(eq(31L), any(EnumSet.class))).thenReturn(0L);
+
+        byte[] zip = buildZipWithXml("a.xml", """
+                <retEnviNFe xmlns="http://www.portalfiscal.inf.br/nfe" versao="4.00">
+                  <cStat>104</cStat>
+                </retEnviNFe>
+                """);
+        when(storageService.get("imports/31/abc.zip")).thenReturn(new ByteArrayInputStream(zip));
+
+        service.process(new ParseXmlMessage(31L, 312L, "fiscal-raw", "imports/31/abc.zip", "a.xml", "abc"), "corr");
+
+        ArgumentCaptor<ImportItem> itemCaptor = ArgumentCaptor.forClass(ImportItem.class);
+        verify(importItemRepository, atLeastOnce()).save(itemCaptor.capture());
+        ImportItem last = itemCaptor.getAllValues().get(itemCaptor.getAllValues().size() - 1);
+        assertEquals(ImportItemStatus.FALHA_PARSE, last.getStatus());
+        assertEquals("FALHA_PARSE", last.getErroCodigo());
+        assertTrue(last.getErroMensagem().startsWith("xml_tipo_nao_suportado:root=retEnviNFe"));
+    }
+
+    @Test
     void process_falhaMinio_lancaInfraException() {
         ParseXmlService service = new ParseXmlService(
                 importacaoRepository,

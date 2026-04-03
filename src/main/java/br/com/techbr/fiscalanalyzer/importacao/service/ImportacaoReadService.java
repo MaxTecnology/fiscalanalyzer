@@ -3,6 +3,7 @@ package br.com.techbr.fiscalanalyzer.importacao.service;
 import br.com.techbr.fiscalanalyzer.common.exception.ValidationException;
 import br.com.techbr.fiscalanalyzer.identity.security.UserAuthContext;
 import br.com.techbr.fiscalanalyzer.identity.service.UserAuthorizationService;
+import br.com.techbr.fiscalanalyzer.importacao.dto.ImportFailureSummaryResponse;
 import br.com.techbr.fiscalanalyzer.importacao.dto.ImportacaoDetailResponse;
 import br.com.techbr.fiscalanalyzer.importacao.dto.ImportItemResponse;
 import br.com.techbr.fiscalanalyzer.importacao.dto.ImportItemStatusCountResponse;
@@ -17,6 +18,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.StringUtils;
 
 import java.util.List;
 
@@ -92,6 +94,14 @@ public class ImportacaoReadService {
         return page.map(this::toResponse);
     }
 
+    @Transactional(readOnly = true)
+    public List<ImportFailureSummaryResponse> summarizeFailures(Long importacaoId, UserAuthContext auth) {
+        loadAndAuthorize(importacaoId, auth);
+        return importItemRepository.summarizeFailures(importacaoId).stream()
+                .map(this::toFailureSummary)
+                .toList();
+    }
+
     private ImportItemResponse toResponse(ImportItem item) {
         return new ImportItemResponse(
                 item.getId(),
@@ -119,6 +129,17 @@ public class ImportacaoReadService {
                 safeInt(importacao.getTotalErros()),
                 importacao.getCreatedAt(),
                 importacao.getUpdatedAt()
+        );
+    }
+
+    private ImportFailureSummaryResponse toFailureSummary(ImportItemRepository.FailureSummaryProjection projection) {
+        return new ImportFailureSummaryResponse(
+                StringUtils.hasText(projection.getErroCodigo()) ? projection.getErroCodigo() : "NAO_CLASSIFICADO",
+                StringUtils.hasText(projection.getErroMensagem()) ? projection.getErroMensagem() : "sem_detalhe",
+                projection.getTotalItems(),
+                projection.getSampleItemId(),
+                projection.getSampleXmlPath(),
+                projection.getLastOccurrenceAt()
         );
     }
 

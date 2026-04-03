@@ -359,7 +359,8 @@ Status atual:
 - Rotas `/admin/**` exigem JWT de usuário com role `ADMIN` (sem fallback legado).
 - Fase 7.2 iniciada: RBAC mínimo ativo por role + escopo de empresa nas rotas de operação:
   - escrita: `POST /imports/upload` (roles `ADMIN`/`OPERADOR`)
-  - leitura: `GET /imports/{id}`, `GET /imports/{id}/items`, `GET /documents/{accessKey}` (roles `ADMIN`/`OPERADOR`/`LEITOR`)
+  - escrita operacional: `POST /imports/{id}/reprocess` (roles `ADMIN`/`OPERADOR`)
+  - leitura: `GET /imports/{id}`, `GET /imports/{id}/items`, `GET /imports/{id}/failures-summary`, `GET /documents/{accessKey}` (roles `ADMIN`/`OPERADOR`/`LEITOR`)
   - usuários não-admin precisam de vínculo explícito em `app_user_empresa` para `tenantId/empresaId`.
 - Hardening operacional ativo: Redis para rate-limit/lockout distribuído, auditoria dedicada e retenção automática dos eventos de segurança.
 - Decisão arquitetural de identidade aprovada em `TENANT_EMPRESA_USUARIO_DECISION.md`; implementação guiada por `IDENTITY_FOUNDATION_CHECKLIST.md`.

@@ -534,7 +534,11 @@ public class ParseXmlService {
                     if ("NFe".equals(root) || "nfeProc".equals(root)) {
                         return ParsedXmlType.DOCUMENT;
                     }
-                    throw new ValidationException("xml_tipo_nao_suportado");
+                    String namespace = reader.getNamespaceURI();
+                    if (!StringUtils.hasText(namespace)) {
+                        namespace = "sem_namespace";
+                    }
+                    throw new ValidationException("xml_tipo_nao_suportado:root=%s,ns=%s".formatted(root, namespace));
                 }
             }
             throw new ValidationException("xml_vazio");

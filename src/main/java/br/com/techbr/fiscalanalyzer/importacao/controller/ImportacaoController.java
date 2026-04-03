@@ -1,8 +1,11 @@
 package br.com.techbr.fiscalanalyzer.importacao.controller;
 
 import br.com.techbr.fiscalanalyzer.importacao.dto.ImportacaoResponse;
+import br.com.techbr.fiscalanalyzer.importacao.dto.ImportReprocessRequest;
+import br.com.techbr.fiscalanalyzer.importacao.dto.ImportReprocessResponse;
 import br.com.techbr.fiscalanalyzer.importacao.dto.ManifestRequest;
 import br.com.techbr.fiscalanalyzer.importacao.dto.ManifestResponse;
+import br.com.techbr.fiscalanalyzer.importacao.service.ImportacaoReprocessService;
 import br.com.techbr.fiscalanalyzer.importacao.service.ImportacaoService;
 import br.com.techbr.fiscalanalyzer.agent.security.AgentAuthRequestContext;
 import br.com.techbr.fiscalanalyzer.identity.security.UserAuthRequestContext;
@@ -22,11 +25,14 @@ import org.springframework.web.multipart.MultipartFile;
 public class ImportacaoController {
 
     private final ImportacaoService importacaoService;
+    private final ImportacaoReprocessService importacaoReprocessService;
     private final UserAuthorizationService userAuthorizationService;
 
     public ImportacaoController(ImportacaoService importacaoService,
+                                ImportacaoReprocessService importacaoReprocessService,
                                 UserAuthorizationService userAuthorizationService) {
         this.importacaoService = importacaoService;
+        this.importacaoReprocessService = importacaoReprocessService;
         this.userAuthorizationService = userAuthorizationService;
     }
 
@@ -50,6 +56,14 @@ public class ImportacaoController {
         var auth = AgentAuthRequestContext.required(servletRequest);
         var imp = importacaoService.criarImportacaoPorManifesto(request, auth.tenantId(), auth.empresaId());
         return new ManifestResponse(imp.getId(), imp.getStatus().name(), imp.getTotalEncontrado());
+    }
+
+    @PostMapping(value = "/{id}/reprocess", consumes = MediaType.APPLICATION_JSON_VALUE)
+    public ImportReprocessResponse reprocess(@PathVariable @NotNull Long id,
+                                             @RequestBody(required = false) ImportReprocessRequest request,
+                                             HttpServletRequest servletRequest) {
+        var auth = UserAuthRequestContext.required(servletRequest);
+        return importacaoReprocessService.reprocess(id, request, auth);
     }
 
 }

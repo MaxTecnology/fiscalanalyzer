@@ -1,6 +1,7 @@
 package br.com.techbr.fiscalanalyzer.importacao.service;
 
 import br.com.techbr.fiscalanalyzer.importacao.dto.ImportacaoDetailResponse;
+import br.com.techbr.fiscalanalyzer.importacao.dto.ImportFailureSummaryResponse;
 import br.com.techbr.fiscalanalyzer.importacao.dto.ImportacaoSummaryResponse;
 import br.com.techbr.fiscalanalyzer.identity.security.UserAuthContext;
 import br.com.techbr.fiscalanalyzer.identity.service.UserAuthorizationService;
@@ -95,5 +96,48 @@ class ImportacaoReadServiceTest {
             implements ImportItemRepository.StatusCountProjection {
         @Override public ImportItemStatus getStatus() { return status; }
         @Override public long getCount() { return count; }
+    }
+
+    @Test
+    void summarizeFailures_retornaAgrupado() {
+        ImportacaoRepository importacaoRepository = Mockito.mock(ImportacaoRepository.class);
+        ImportItemRepository importItemRepository = Mockito.mock(ImportItemRepository.class);
+        UserAuthorizationService userAuthorizationService = Mockito.mock(UserAuthorizationService.class);
+        ImportacaoReadService service = new ImportacaoReadService(importacaoRepository, importItemRepository, userAuthorizationService);
+
+        Importacao imp = new Importacao();
+        ReflectionTestUtils.setField(imp, "id", 1L);
+        imp.setTenantId(99L);
+        imp.setEmpresaId(42L);
+        when(importacaoRepository.findById(1L)).thenReturn(Optional.of(imp));
+        when(importItemRepository.summarizeFailures(1L)).thenReturn(List.of(
+                new FailureSummary("FALHA_PARSE", "xml_tipo_nao_suportado:root=retEnviNFe,ns=http://www.portalfiscal.inf.br/nfe",
+                        9L, 77L, "1/2/a.xml", Instant.parse("2026-04-02T21:06:49Z"))
+        ));
+
+        List<ImportFailureSummaryResponse> summary = service.summarizeFailures(
+                1L,
+                new UserAuthContext(7L, "leitor@empresa.com", List.of("LEITOR"))
+        );
+
+        assertEquals(1, summary.size());
+        assertEquals("FALHA_PARSE", summary.getFirst().erroCodigo());
+        assertEquals(9L, summary.getFirst().totalItems());
+        assertEquals("1/2/a.xml", summary.getFirst().sampleXmlPath());
+    }
+
+    private record FailureSummary(String erroCodigo,
+                                  String erroMensagem,
+                                  long totalItems,
+                                  Long sampleItemId,
+                                  String sampleXmlPath,
+                                  Instant lastOccurrenceAt)
+            implements ImportItemRepository.FailureSummaryProjection {
+        @Override public String getErroCodigo() { return erroCodigo; }
+        @Override public String getErroMensagem() { return erroMensagem; }
+        @Override public long getTotalItems() { return totalItems; }
+        @Override public Long getSampleItemId() { return sampleItemId; }
+        @Override public String getSampleXmlPath() { return sampleXmlPath; }
+        @Override public Instant getLastOccurrenceAt() { return lastOccurrenceAt; }
     }
 }

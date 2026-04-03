@@ -1,6 +1,7 @@
 package br.com.techbr.fiscalanalyzer.importacao.controller;
 
 import br.com.techbr.fiscalanalyzer.common.exception.ValidationException;
+import br.com.techbr.fiscalanalyzer.importacao.dto.ImportFailureSummaryResponse;
 import br.com.techbr.fiscalanalyzer.importacao.dto.ImportacaoDetailResponse;
 import br.com.techbr.fiscalanalyzer.importacao.dto.ImportItemResponse;
 import br.com.techbr.fiscalanalyzer.importacao.dto.ImportacaoSummaryResponse;
@@ -18,6 +19,7 @@ import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.Set;
+import java.util.List;
 
 @RestController
 @RequestMapping("/imports")
@@ -68,6 +70,14 @@ public class ImportacaoReadController {
     ) {
         Pageable pageable = PageRequest.of(Math.max(page, 0), Math.min(Math.max(size, 1), 200));
         return importacaoReadService.listItems(id, status, pageable, UserAuthRequestContext.required(servletRequest));
+    }
+
+    @GetMapping("/{id}/failures-summary")
+    public List<ImportFailureSummaryResponse> summarizeFailures(
+            @PathVariable @Min(1) Long id,
+            HttpServletRequest servletRequest
+    ) {
+        return importacaoReadService.summarizeFailures(id, UserAuthRequestContext.required(servletRequest));
     }
 
     private Pageable buildPageable(int page, int size, String sort) {

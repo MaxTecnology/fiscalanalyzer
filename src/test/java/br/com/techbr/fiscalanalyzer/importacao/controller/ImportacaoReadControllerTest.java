@@ -3,6 +3,7 @@ package br.com.techbr.fiscalanalyzer.importacao.controller;
 import br.com.techbr.fiscalanalyzer.common.exception.ApiExceptionHandler;
 import br.com.techbr.fiscalanalyzer.identity.security.UserAuthContext;
 import br.com.techbr.fiscalanalyzer.identity.security.UserAuthRequestContext;
+import br.com.techbr.fiscalanalyzer.importacao.dto.ImportFailureSummaryResponse;
 import br.com.techbr.fiscalanalyzer.importacao.dto.ImportacaoDetailResponse;
 import br.com.techbr.fiscalanalyzer.importacao.dto.ImportItemResponse;
 import br.com.techbr.fiscalanalyzer.importacao.dto.ImportItemStatusCountResponse;
@@ -145,5 +146,26 @@ class ImportacaoReadControllerTest {
                         .requestAttr(UserAuthRequestContext.REQUEST_ATTRIBUTE,
                                 new UserAuthContext(7L, "leitor@empresa.com", List.of("LEITOR"))))
                 .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void get_imports_failures_summary() throws Exception {
+        when(readService.summarizeFailures(eq(1L), any()))
+                .thenReturn(List.of(new ImportFailureSummaryResponse(
+                        "FALHA_PARSE",
+                        "xml_tipo_nao_suportado:root=retEnviNFe,ns=http://www.portalfiscal.inf.br/nfe",
+                        12,
+                        501L,
+                        "1/2/abc.xml",
+                        Instant.parse("2026-04-02T21:06:49Z")
+                )));
+
+        mockMvc.perform(get("/imports/1/failures-summary")
+                        .requestAttr(UserAuthRequestContext.REQUEST_ATTRIBUTE,
+                                new UserAuthContext(7L, "leitor@empresa.com", List.of("LEITOR"))))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].erroCodigo").value("FALHA_PARSE"))
+                .andExpect(jsonPath("$[0].totalItems").value(12))
+                .andExpect(jsonPath("$[0].sampleXmlPath").value("1/2/abc.xml"));
     }
 }

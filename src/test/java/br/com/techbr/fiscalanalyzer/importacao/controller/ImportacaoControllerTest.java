@@ -8,10 +8,12 @@ import br.com.techbr.fiscalanalyzer.agent.security.AgentAuthRequestContext;
 import br.com.techbr.fiscalanalyzer.identity.security.UserAuthContext;
 import br.com.techbr.fiscalanalyzer.identity.security.UserAuthRequestContext;
 import br.com.techbr.fiscalanalyzer.identity.service.UserAuthorizationService;
+import br.com.techbr.fiscalanalyzer.importacao.dto.ImportReprocessResponse;
 import br.com.techbr.fiscalanalyzer.importacao.dto.ManifestRequest;
 import br.com.techbr.fiscalanalyzer.importacao.model.Importacao;
 import br.com.techbr.fiscalanalyzer.importacao.model.ImportacaoSourceType;
 import br.com.techbr.fiscalanalyzer.importacao.model.ImportacaoStatus;
+import br.com.techbr.fiscalanalyzer.importacao.service.ImportacaoReprocessService;
 import br.com.techbr.fiscalanalyzer.importacao.service.ImportacaoService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -20,6 +22,7 @@ import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
+import java.util.List;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
@@ -35,13 +38,19 @@ class ImportacaoControllerTest {
 
     private MockMvc mockMvc;
     private ImportacaoService importacaoService;
+    private ImportacaoReprocessService importacaoReprocessService;
     private UserAuthorizationService userAuthorizationService;
 
     @BeforeEach
     void setUp() {
         importacaoService = mock(ImportacaoService.class);
+        importacaoReprocessService = mock(ImportacaoReprocessService.class);
         userAuthorizationService = mock(UserAuthorizationService.class);
-        ImportacaoController controller = new ImportacaoController(importacaoService, userAuthorizationService);
+        ImportacaoController controller = new ImportacaoController(
+                importacaoService,
+                importacaoReprocessService,
+                userAuthorizationService
+        );
         mockMvc = MockMvcBuilders.standaloneSetup(controller)
                 .setControllerAdvice(new ApiExceptionHandler())
                 .build();
@@ -154,5 +163,35 @@ class ImportacaoControllerTest {
                         .content(body))
                 .andExpect(status().isUnprocessableEntity())
                 .andExpect(jsonPath("$.code").value("UNPROCESSABLE_ENTITY"));
+    }
+
+    @Test
+    void reprocess_retorna200() throws Exception {
+        when(importacaoReprocessService.reprocess(eq(42L), any(), any()))
+                .thenReturn(new ImportReprocessResponse(
+                        42L,
+                        false,
+                        "corr-id",
+                        10,
+                        10,
+                        List.of("FALHA_PARSE"),
+                        "FALHA_PARSE"
+                ));
+
+        mockMvc.perform(post("/imports/42/reprocess")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "statuses": ["FALHA_PARSE"],
+                                  "erroCodigo": "FALHA_PARSE",
+                                  "limit": 10
+                                }
+                                """)
+                        .requestAttr(UserAuthRequestContext.REQUEST_ATTRIBUTE,
+                                new UserAuthContext(7L, "operador@empresa.com", java.util.List.of("OPERADOR"))))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.importacaoId").value(42))
+                .andExpect(jsonPath("$.requeuedItems").value(10))
+                .andExpect(jsonPath("$.correlationId").value("corr-id"));
     }
 }

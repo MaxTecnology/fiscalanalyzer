@@ -19,7 +19,7 @@
 @userId = 1
 @userEmail = admin@techbr.com
 @userPassword = Password@12
-@userJwt = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJmaXNjYWxhbmFseXplciIsImF1ZCI6ImZpc2NhbGFuYWx5emVyLWFkbWluIiwic3ViIjoiMSIsImVtYWlsIjoiYWRtaW5AdGVjaGJyLmNvbSIsInJvbGVzIjpbIkFETUlOIl0sImlhdCI6MTc3NDU3NzY5OSwiZXhwIjoxNzc0NTgxMjk5fQ.fnC23F0vffw0CmdDP7t9pcNii3Cpf1IwJQQEaWDn2ZQ
+@userJwt = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJmaXNjYWxhbmFseXplciIsImF1ZCI6ImZpc2NhbGFuYWx5emVyLWFkbWluIiwic3ViIjoiMSIsImVtYWlsIjoiYWRtaW5AdGVjaGJyLmNvbSIsInJvbGVzIjpbIkFETUlOIl0sImlhdCI6MTc3NTE2NTQ1NCwiZXhwIjoxNzc1MTY5MDU0fQ.rwMWG6UMKyQU8Jds8ZmH2ALVatfMpxMn7U1dEKvOAkg
 @bootstrapToken = aca1aba00a82818f673b6de1f70ae7dce42294b19c36c368ab9712307d60a1ba
 
 ###
@@ -141,10 +141,34 @@ Authorization: Bearer {{userJwt}}
 GET {{baseUrl}}/imports/{{importacaoId}}/items?page=0&size=20
 Authorization: Bearer {{userJwt}}
 
+
+### Itens da importação (paginado)
+GET {{baseUrl}}/imports/234/items?page=0&size=20
+Authorization: Bearer {{userJwt}}
+
 ###
 ### Itens da importação por status
 GET {{baseUrl}}/imports/{{importacaoId}}/items?status=PARSEADO&page=0&size=20
 Authorization: Bearer {{userJwt}}
+
+###
+### Resumo de falhas (agrupado por erro_codigo + erro_mensagem)
+GET {{baseUrl}}/imports/{{importacaoId}}/failures-summary
+Authorization: Bearer {{userJwt}}
+
+###
+### Reprocessar itens com falha (ex.: após ajuste de parser/regra)
+### statuses permitidos: FALHA_PARSE, FALHA_PERMANENTE, ERRO
+POST {{baseUrl}}/imports/{{importacaoId}}/reprocess
+Authorization: Bearer {{userJwt}}
+Content-Type: application/json
+
+{
+  "statuses": ["FALHA_PARSE"],
+  "erroCodigo": "FALHA_PARSE",
+  "limit": 500,
+  "dryRun": false
+}
 
 ###
 ### Documento por chave de acesso
