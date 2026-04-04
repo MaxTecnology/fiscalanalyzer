@@ -26,6 +26,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
@@ -87,8 +88,7 @@ public class DocumentQueryService {
         validateDateRange(issueDateFrom, issueDateTo);
         Short normalizedModel = normalizeModel(model);
         String normalizedOperationType = normalizeOperationType(operationType);
-
-        Page<FiscalDocument> page = fiscalDocumentRepository.search(
+        Specification<FiscalDocument> specification = buildSearchSpecification(
                 tenantId,
                 empresaId,
                 normalizedModel,
@@ -98,9 +98,10 @@ public class DocumentQueryService {
                 normalizeDocument(destCnpj),
                 issueDateFrom,
                 issueDateTo,
-                importacaoId,
-                pageable
+                importacaoId
         );
+
+        Page<FiscalDocument> page = fiscalDocumentRepository.findAll(specification, pageable);
 
         return page.map(this::toListItem);
     }
@@ -346,19 +347,22 @@ public class DocumentQueryService {
                                                     Long importacaoId) {
         List<DocumentExportRow> rows = new ArrayList<>();
         int page = 0;
+        Specification<FiscalDocument> specification = buildSearchSpecification(
+                tenantId,
+                empresaId,
+                model,
+                operationType,
+                statusDocumento,
+                emitCnpj,
+                destCnpj,
+                issueDateFrom,
+                issueDateTo,
+                importacaoId
+        );
 
         while (true) {
-            Page<FiscalDocument> batch = fiscalDocumentRepository.search(
-                    tenantId,
-                    empresaId,
-                    model,
-                    operationType,
-                    statusDocumento,
-                    emitCnpj,
-                    destCnpj,
-                    issueDateFrom,
-                    issueDateTo,
-                    importacaoId,
+            Page<FiscalDocument> batch = fiscalDocumentRepository.findAll(
+                    specification,
                     PageRequest.of(page, EXPORT_PAGE_SIZE, Sort.by(Sort.Direction.DESC, "issueDate").and(Sort.by(Sort.Direction.DESC, "createdAt")))
             );
 
@@ -784,6 +788,49 @@ public class DocumentQueryService {
     private FiscalDocument findDocument(Long tenantId, Long empresaId, String accessKey) {
         return fiscalDocumentRepository.findByTenantIdAndEmpresaIdAndAccessKey(tenantId, empresaId, accessKey)
                 .orElseThrow(() -> new ValidationException("Documento nao encontrado"));
+    }
+
+    private Specification<FiscalDocument> buildSearchSpecification(Long tenantId,
+                                                                   Long empresaId,
+                                                                   Short model,
+                                                                   String operationType,
+                                                                   FiscalDocumentStatus statusDocumento,
+                                                                   String emitCnpj,
+                                                                   String destCnpj,
+                                                                   LocalDate issueDateFrom,
+                                                                   LocalDate issueDateTo,
+                                                                   Long importacaoId) {
+        Specification<FiscalDocument> specification = (root, query, cb) -> cb.and(
+                cb.equal(root.get("tenantId"), tenantId),
+                cb.equal(root.get("empresaId"), empresaId)
+        );
+
+        if (model != null) {
+            specification = specification.and((root, query, cb) -> cb.equal(root.get("model"), model));
+        }
+        if (StringUtils.hasText(operationType)) {
+            specification = specification.and((root, query, cb) -> cb.equal(root.get("operationType"), operationType));
+        }
+        if (statusDocumento != null) {
+            specification = specification.and((root, query, cb) -> cb.equal(root.get("statusDocumento"), statusDocumento));
+        }
+        if (StringUtils.hasText(emitCnpj)) {
+            specification = specification.and((root, query, cb) -> cb.equal(root.get("emitCnpj"), emitCnpj));
+        }
+        if (StringUtils.hasText(destCnpj)) {
+            specification = specification.and((root, query, cb) -> cb.equal(root.get("destCnpj"), destCnpj));
+        }
+        if (issueDateFrom != null) {
+            specification = specification.and((root, query, cb) -> cb.greaterThanOrEqualTo(root.get("issueDate"), issueDateFrom));
+        }
+        if (issueDateTo != null) {
+            specification = specification.and((root, query, cb) -> cb.lessThanOrEqualTo(root.get("issueDate"), issueDateTo));
+        }
+        if (importacaoId != null) {
+            specification = specification.and((root, query, cb) -> cb.equal(root.get("importacao").get("id"), importacaoId));
+        }
+
+        return specification;
     }
 
     private DocumentListItemResponse toListItem(FiscalDocument doc) {

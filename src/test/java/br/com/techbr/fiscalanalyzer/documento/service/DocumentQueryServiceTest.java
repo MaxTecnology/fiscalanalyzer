@@ -21,6 +21,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
+import org.springframework.data.jpa.domain.Specification;
 
 import java.io.ByteArrayInputStream;
 import java.math.BigDecimal;
@@ -82,10 +83,7 @@ class DocumentQueryServiceTest {
     @Test
     void listDocuments_retornaPagina() {
         FiscalDocument document = buildDocument();
-        when(fiscalDocumentRepository.search(
-                eq(1L), eq(2L), eq((short) 55), eq("S"), eq(FiscalDocumentStatus.ATIVA),
-                eq("11111111111111"), eq("22222222222222"), eq(LocalDate.of(2024, 1, 1)),
-                eq(LocalDate.of(2024, 1, 31)), eq(10L), any()))
+        when(fiscalDocumentRepository.findAll(any(Specification.class), any(PageRequest.class)))
                 .thenReturn(new PageImpl<>(List.of(document), PageRequest.of(0, 20), 1));
 
         var result = service.listDocuments(
@@ -150,10 +148,7 @@ class DocumentQueryServiceTest {
     @Test
     void exportDocuments_pdf_retornaArquivo() {
         FiscalDocument document = buildDocument();
-        when(fiscalDocumentRepository.search(
-                eq(1L), eq(2L), eq((short) 55), eq("S"), eq(FiscalDocumentStatus.ATIVA),
-                eq("11111111111111"), eq("22222222222222"), eq(LocalDate.of(2026, 3, 1)),
-                eq(LocalDate.of(2026, 3, 31)), eq(10L), any()))
+        when(fiscalDocumentRepository.findAll(any(Specification.class), any(PageRequest.class)))
                 .thenReturn(new PageImpl<>(List.of(document), PageRequest.of(0, 1), 1));
 
         var request = new DocumentExportRequest(
@@ -180,10 +175,7 @@ class DocumentQueryServiceTest {
     @Test
     void exportDocuments_csv_padrao_quandoFormatoNulo() {
         FiscalDocument document = buildDocument();
-        when(fiscalDocumentRepository.search(
-                eq(1L), eq(2L), isNull(), isNull(), isNull(),
-                isNull(), isNull(), eq(LocalDate.of(2026, 3, 1)),
-                eq(LocalDate.of(2026, 3, 31)), isNull(), any()))
+        when(fiscalDocumentRepository.findAll(any(Specification.class), any(PageRequest.class)))
                 .thenReturn(new PageImpl<>(List.of(document), PageRequest.of(0, 1), 1));
 
         var request = new DocumentExportRequest(

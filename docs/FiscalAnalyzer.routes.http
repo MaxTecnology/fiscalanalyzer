@@ -19,7 +19,7 @@
 @userId = 1
 @userEmail = admin@techbr.com
 @userPassword = Password@12
-@userJwt = eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJmaXNjYWxhbmFseXplciIsImF1ZCI6ImZpc2NhbGFuYWx5emVyLWFkbWluIiwic3ViIjoiMSIsImVtYWlsIjoiYWRtaW5AdGVjaGJyLmNvbSIsInJvbGVzIjpbIkFETUlOIl0sImlhdCI6MTc3NTMzMTA3MywiZXhwIjoxNzc1MzM0NjczfQ.11rPmXqFdQlpKeZAskb5m6vmRffIc2xWK4YC4cC3Qpo
+@userJwt = eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJmaXNjYWxhbmFseXplciIsImF1ZCI6ImZpc2NhbGFuYWx5emVyLWFkbWluIiwic3ViIjoiMSIsImVtYWlsIjoiYWRtaW5AdGVjaGJyLmNvbSIsInJvbGVzIjpbIkFETUlOIl0sImlhdCI6MTc3NTMzNTEyNywiZXhwIjoxNzc1MzM4NzI3fQ.mehTadNXJSCdoU86bwEL6iql5ezAf9DJmNSpT__s-cU
 @bootstrapToken = aca1aba00a82818f673b6de1f70ae7dce42294b19c36c368ab9712307d60a1ba
 
 ###
@@ -185,7 +185,7 @@ Authorization: Bearer {{userJwt}}
 
 ###
 ### Listagem de documentos com filtros principais
-GET {{baseUrl}}/documents?tenantId={{tenantId}}&empresaId={{empresaId}}&model=65&operationType=S&statusDocumento=ATIVA&issueDateFrom=2024-02-01&issueDateTo=2024-02-28&page=0&size=20&sort=totalAmount,desc
+GET {{baseUrl}}/documents?tenantId={{tenantId}}&empresaId={{empresaId}}&model=65&issueDateFrom=2024-02-01&issueDateTo=2024-02-28&page=0&size=20&sort=totalAmount,desc
 Authorization: Bearer {{userJwt}}
 
 ###

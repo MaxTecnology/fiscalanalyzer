@@ -3,9 +3,9 @@ package br.com.techbr.fiscalanalyzer.documento.repository;
 import br.com.techbr.fiscalanalyzer.documento.model.FiscalDocumentStatus;
 import br.com.techbr.fiscalanalyzer.documento.model.FiscalDocument;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
-import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 
 import java.math.BigDecimal;
@@ -13,7 +13,8 @@ import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
 
-public interface FiscalDocumentRepository extends JpaRepository<FiscalDocument, Long> {
+public interface FiscalDocumentRepository extends JpaRepository<FiscalDocument, Long>,
+        JpaSpecificationExecutor<FiscalDocument> {
     Optional<FiscalDocument> findByTenantIdAndEmpresaIdAndAccessKey(Long tenantId, Long empresaId, String accessKey);
 
     long countByTenantIdAndEmpresaId(Long tenantId, Long empresaId);
@@ -66,33 +67,6 @@ public interface FiscalDocumentRepository extends JpaRepository<FiscalDocument, 
               and not exists (select 1 from FiscalDocumentAdditionalInfo ai where ai.document = d)
             """)
     long countWithoutAdditionalInfoCoverage(@Param("tenantId") Long tenantId, @Param("empresaId") Long empresaId);
-
-    @Query("""
-            select d from FiscalDocument d
-            where d.tenantId = :tenantId
-              and d.empresaId = :empresaId
-              and (:model is null or d.model = :model)
-              and (:operationType is null or d.operationType = :operationType)
-              and (:statusDocumento is null or d.statusDocumento = :statusDocumento)
-              and (:emitCnpj is null or d.emitCnpj = :emitCnpj)
-              and (:destCnpj is null or d.destCnpj = :destCnpj)
-              and (:issueDateFrom is null or d.issueDate >= :issueDateFrom)
-              and (:issueDateTo is null or d.issueDate <= :issueDateTo)
-              and (:importacaoId is null or d.importacao.id = :importacaoId)
-            """)
-    Page<FiscalDocument> search(
-            @Param("tenantId") Long tenantId,
-            @Param("empresaId") Long empresaId,
-            @Param("model") Short model,
-            @Param("operationType") String operationType,
-            @Param("statusDocumento") FiscalDocumentStatus statusDocumento,
-            @Param("emitCnpj") String emitCnpj,
-            @Param("destCnpj") String destCnpj,
-            @Param("issueDateFrom") LocalDate issueDateFrom,
-            @Param("issueDateTo") LocalDate issueDateTo,
-            @Param("importacaoId") Long importacaoId,
-            Pageable pageable
-    );
 
     long countByTenantIdAndEmpresaIdAndIssueDateBetween(Long tenantId, Long empresaId, LocalDate issueDateFrom, LocalDate issueDateTo);
 
