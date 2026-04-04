@@ -6,7 +6,7 @@
 @baseUrl = https://api.fiscalanalyzer.techbrsolucoes.com.br
 @baseUrlLocal = http://localhost:8080
 @tenantId = 1
-@empresaId = 1
+@empresaId = 2
 @importacaoId = 1
 @accessKey = 35191111111111111111550010000000011000000010
 @agentApiKey = fa_live_mZ2rerxKwrL8wzJ8w_t8r3hC9CvMvDsYzzW229eMjgQ
@@ -19,7 +19,7 @@
 @userId = 1
 @userEmail = admin@techbr.com
 @userPassword = Password@12
-@userJwt = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJmaXNjYWxhbmFseXplciIsImF1ZCI6ImZpc2NhbGFuYWx5emVyLWFkbWluIiwic3ViIjoiMSIsImVtYWlsIjoiYWRtaW5AdGVjaGJyLmNvbSIsInJvbGVzIjpbIkFETUlOIl0sImlhdCI6MTc3NTE2NTQ1NCwiZXhwIjoxNzc1MTY5MDU0fQ.rwMWG6UMKyQU8Jds8ZmH2ALVatfMpxMn7U1dEKvOAkg
+@userJwt = eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJmaXNjYWxhbmFseXplciIsImF1ZCI6ImZpc2NhbGFuYWx5emVyLWFkbWluIiwic3ViIjoiMSIsImVtYWlsIjoiYWRtaW5AdGVjaGJyLmNvbSIsInJvbGVzIjpbIkFETUlOIl0sImlhdCI6MTc3NTMzMTA3MywiZXhwIjoxNzc1MzM0NjczfQ.11rPmXqFdQlpKeZAskb5m6vmRffIc2xWK4YC4cC3Qpo
 @bootstrapToken = aca1aba00a82818f673b6de1f70ae7dce42294b19c36c368ab9712307d60a1ba
 
 ###
@@ -245,12 +245,15 @@ Authorization: Bearer {{userJwt}}
 
 ###
 ### Estatísticas por CFOP (top N)
-GET {{baseUrl}}/documents/stats/cfop?tenantId={{tenantId}}&empresaId={{empresaId}}&issueDateFrom=2026-03-01&issueDateTo=2026-03-31&limit=50
+GET {{baseUrl}}/documents/stats/cfop?tenantId={{tenantId}}&empresaId={{empresaId}}&issueDateFrom=2024-03-31&issueDateTo=2024-03-31&limit=50
 Authorization: Bearer {{userJwt}}
 
 ###
+GET {{baseUrl}}/documents?tenantId=1&empresaId=2&issueDateFrom=2024-02-01&issueDateTo=2024-02-28&page=0&size=20
+Authorization: Bearer {{userJwt}}
+###
 ### Estatísticas por NCM (top N)
-GET {{baseUrl}}/documents/stats/ncm?tenantId={{tenantId}}&empresaId={{empresaId}}&issueDateFrom=2026-03-01&issueDateTo=2026-03-31&limit=50
+GET {{baseUrl}}/documents/stats/ncm?tenantId={{tenantId}}&empresaId={{empresaId}}&issueDateFrom=2024-02-01&issueDateTo=2026-03-31&limit=50
 Authorization: Bearer {{userJwt}}
 
 ###
