@@ -5,10 +5,12 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.core.convert.ConversionFailedException;
 import org.springframework.dao.InvalidDataAccessApiUsageException;
+import org.springframework.dao.InvalidDataAccessResourceUsageException;
 import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.HttpHeaders;
+import org.springframework.orm.jpa.JpaSystemException;
 import org.springframework.validation.BindException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.MissingServletRequestParameterException;
@@ -42,12 +44,28 @@ public class ApiExceptionHandler {
                 .body(new ErrorResponse("VALIDATION_ERROR", message));
     }
 
-    @ExceptionHandler(InvalidDataAccessApiUsageException.class)
-    public ResponseEntity<ErrorResponse> handleInvalidDataAccessUsage(InvalidDataAccessApiUsageException ex) {
+    @ExceptionHandler({
+            InvalidDataAccessApiUsageException.class,
+            InvalidDataAccessResourceUsageException.class
+    })
+    public ResponseEntity<ErrorResponse> handleInvalidDataAccessUsage(RuntimeException ex) {
         String message = "Parametros de consulta invalidos";
         log.warn("api.validation.query_error message={}", ex.getMessage());
         return ResponseEntity.status(HttpStatus.BAD_REQUEST)
                 .body(new ErrorResponse("VALIDATION_ERROR", message));
+    }
+
+    @ExceptionHandler(JpaSystemException.class)
+    public ResponseEntity<ErrorResponse> handleJpaSystemException(JpaSystemException ex) {
+        if (isLikelyQueryValidationError(ex)) {
+            log.warn("api.validation.jpa_query_error message={}", ex.getMessage());
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body(new ErrorResponse("VALIDATION_ERROR", "Parametros de consulta invalidos"));
+        }
+
+        log.error("api.jpa.error message={}", ex.getMessage(), ex);
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body(new ErrorResponse("INTERNAL_ERROR", "Erro interno inesperado"));
     }
 
     @ExceptionHandler(InfraException.class)
@@ -125,5 +143,24 @@ public class ApiExceptionHandler {
             return "Dados de entrada invalidos";
         }
         return message;
+    }
+
+    private boolean isLikelyQueryValidationError(Throwable throwable) {
+        Throwable current = throwable;
+        while (current != null) {
+            String message = current.getMessage();
+            if (message != null) {
+                String normalized = message.toLowerCase();
+                if (normalized.contains("could not resolve attribute")
+                        || normalized.contains("could not resolve property")
+                        || normalized.contains("could not interpret path expression")
+                        || normalized.contains("no enum constant")
+                        || normalized.contains("parameter value [")) {
+                    return true;
+                }
+            }
+            current = current.getCause();
+        }
+        return false;
     }
 }

@@ -20,8 +20,10 @@ import br.com.techbr.fiscalanalyzer.identity.service.UserAuthorizationService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.dao.InvalidDataAccessApiUsageException;
+import org.springframework.dao.InvalidDataAccessResourceUsageException;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
+import org.springframework.orm.jpa.JpaSystemException;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
@@ -118,6 +120,50 @@ class DocumentControllerTest {
                 eq(null), eq(null), eq(LocalDate.of(2026, 3, 1)),
                 eq(LocalDate.of(2026, 3, 31)), eq(null), any()))
                 .thenThrow(new InvalidDataAccessApiUsageException("query invalida"));
+
+        mockMvc.perform(get("/documents")
+                        .param("tenantId", "1")
+                        .param("empresaId", "2")
+                        .param("model", "55")
+                        .param("operationType", "S")
+                        .param("statusDocumento", "ATIVA")
+                        .param("issueDateFrom", "2026-03-01")
+                        .param("issueDateTo", "2026-03-31")
+                        .requestAttr(UserAuthRequestContext.REQUEST_ATTRIBUTE,
+                                new UserAuthContext(7L, "leitor@empresa.com", List.of("LEITOR"))))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("VALIDATION_ERROR"))
+                .andExpect(jsonPath("$.message").value("Parametros de consulta invalidos"));
+    }
+
+    @Test
+    void list_documents_query_resource_error_retorna_400() throws Exception {
+        when(queryService.listDocuments(eq(1L), eq(2L), eq((short) 55), eq("S"), eq(FiscalDocumentStatus.ATIVA),
+                eq(null), eq(null), eq(LocalDate.of(2026, 3, 1)),
+                eq(LocalDate.of(2026, 3, 31)), eq(null), any()))
+                .thenThrow(new InvalidDataAccessResourceUsageException("sql grammar"));
+
+        mockMvc.perform(get("/documents")
+                        .param("tenantId", "1")
+                        .param("empresaId", "2")
+                        .param("model", "55")
+                        .param("operationType", "S")
+                        .param("statusDocumento", "ATIVA")
+                        .param("issueDateFrom", "2026-03-01")
+                        .param("issueDateTo", "2026-03-31")
+                        .requestAttr(UserAuthRequestContext.REQUEST_ATTRIBUTE,
+                                new UserAuthContext(7L, "leitor@empresa.com", List.of("LEITOR"))))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("VALIDATION_ERROR"))
+                .andExpect(jsonPath("$.message").value("Parametros de consulta invalidos"));
+    }
+
+    @Test
+    void list_documents_query_jpa_semantic_error_retorna_400() throws Exception {
+        when(queryService.listDocuments(eq(1L), eq(2L), eq((short) 55), eq("S"), eq(FiscalDocumentStatus.ATIVA),
+                eq(null), eq(null), eq(LocalDate.of(2026, 3, 1)),
+                eq(LocalDate.of(2026, 3, 31)), eq(null), any()))
+                .thenThrow(new JpaSystemException(new RuntimeException("Could not resolve attribute 'totalAmount'")));
 
         mockMvc.perform(get("/documents")
                         .param("tenantId", "1")

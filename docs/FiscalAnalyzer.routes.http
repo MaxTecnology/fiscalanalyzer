@@ -185,7 +185,7 @@ Authorization: Bearer {{userJwt}}
 
 ###
 ### Listagem de documentos com filtros principais
-GET {{baseUrl}}/documents?tenantId={{tenantId}}&empresaId={{empresaId}}&model=55&operationType=S&statusDocumento=ATIVA&issueDateFrom=2026-03-01&issueDateTo=2026-03-31&page=0&size=20&sort=totalAmount,desc
+GET {{baseUrl}}/documents?tenantId={{tenantId}}&empresaId={{empresaId}}&model=65&operationType=S&statusDocumento=ATIVA&issueDateFrom=2024-02-01&issueDateTo=2024-02-28&page=0&size=20&sort=totalAmount,desc
 Authorization: Bearer {{userJwt}}
 
 ###
