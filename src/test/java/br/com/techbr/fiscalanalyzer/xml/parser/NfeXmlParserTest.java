@@ -10,6 +10,7 @@ import java.nio.charset.StandardCharsets;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 class NfeXmlParserTest {
@@ -202,6 +203,7 @@ class NfeXmlParserTest {
         assertEquals("SUZANO PAPEL E CELULOSE S.A.", nfe.emitName());
         assertEquals("043687628", nfe.emitIe());
         assertEquals("PE", nfe.emitUf());
+        assertEquals("JABOATAO DOS GUARARAPES", nfe.emitMunicipio());
         assertEquals(Integer.valueOf(176272), nfe.numeroNota());
         assertEquals("1", nfe.serie());
         assertEquals("Venda merc.adq.receb.de terceiros ou MEI", nfe.naturezaOperacao());
@@ -217,6 +219,7 @@ class NfeXmlParserTest {
         assertEquals("A PEQUENINA LTDA", nfe.destName());
         assertEquals("248521608", nfe.destIe());
         assertEquals("AL", nfe.destUf());
+        assertEquals("TEOTONIO VILELA", nfe.destMunicipio());
         assertEquals("0.00", nfe.totalFrete().toString());
         assertEquals("0.00", nfe.totalDesconto().toString());
         assertEquals("0.00", nfe.totalOutros().toString());
@@ -226,11 +229,13 @@ class NfeXmlParserTest {
         assertEquals("0.00", nfe.faturaValorDesconto().toString());
         assertEquals("88624.11", nfe.faturaValorLiquido().toString());
         assertEquals("88624.11", nfe.totalAmount().toString());
+        assertNull(nfe.totalIss());
         assertNotNull(nfe.issueDateTime());
         assertEquals(1, nfe.payments().size());
         assertEquals(3, nfe.duplicates().size());
         assertEquals(1, nfe.additionalInfos().size());
         assertEquals(2, nfe.items().size());
+        assertEquals("CXA", nfe.items().get(0).unidade());
 
         String nfceXml = Files.readString(Path.of("docs/xmls/nfce.xml"));
         ParsedNfe nfce = parser.parse(new ByteArrayInputStream(nfceXml.getBytes(StandardCharsets.UTF_8)));
@@ -242,9 +247,11 @@ class NfeXmlParserTest {
         assertEquals("52729931000390", nfce.emitCnpj());
         assertEquals("REAL DISTR E COMERCIO DE ALIMENTOS LTDA", nfce.emitName());
         assertEquals("PE", nfce.emitUf());
+        assertEquals("RECIFE", nfce.emitMunicipio());
         assertEquals("23168800023", nfce.destCnpj());
         assertEquals("23168800023", nfce.destDocument());
         assertEquals("CONSUMIDOR FINAL", nfce.destName());
+        assertEquals("RECIFE", nfce.destMunicipio());
         assertEquals("4.07", nfce.totalProducts().toString());
         assertEquals("0.00", nfce.totalFrete().toString());
         assertEquals("0.00", nfce.totalDesconto().toString());
@@ -258,5 +265,6 @@ class NfeXmlParserTest {
         assertEquals("4.07", nfce.totalAmount().toString());
         assertNotNull(nfce.issueDateTime());
         assertEquals(2, nfce.items().size());
+        assertEquals("UN", nfce.items().get(0).unidade());
     }
 }

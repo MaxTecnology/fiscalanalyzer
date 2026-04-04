@@ -8,6 +8,7 @@ public record ParsedNfeItem(
         String productDescription,
         String ncm,
         String cfop,
+        String unidade,
         String cstIcms,
         String csosn,
         BigDecimal quantity,

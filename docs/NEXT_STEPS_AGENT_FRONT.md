@@ -33,6 +33,9 @@ Escopo mínimo:
 - cadastro/listagem de usuários, roles e vínculos de empresa;
 - gestão de Agent API Key (criar/listar/revogar/rotacionar);
 - monitoramento básico de importações e itens.
+- módulo de documentos conforme contrato em `DOCUMENTS_VIEWER_API_CONTRACT.md`:
+  - P0 concluído no backend (`/documents` listagem, detalhe enriquecido e download XML);
+  - P1 parcialmente concluído (`summary` e `events` ativos; `export` pendente).
 
 Critério de aceite:
 - front usa apenas APIs oficiais de `docs/FiscalAnalyzer.routes.http`;

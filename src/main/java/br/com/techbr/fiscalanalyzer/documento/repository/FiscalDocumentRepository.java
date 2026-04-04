@@ -1,10 +1,16 @@
 package br.com.techbr.fiscalanalyzer.documento.repository;
 
+import br.com.techbr.fiscalanalyzer.documento.model.FiscalDocumentStatus;
 import br.com.techbr.fiscalanalyzer.documento.model.FiscalDocument;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 
+import java.math.BigDecimal;
+import java.time.LocalDate;
+import java.util.List;
 import java.util.Optional;
 
 public interface FiscalDocumentRepository extends JpaRepository<FiscalDocument, Long> {
@@ -60,4 +66,116 @@ public interface FiscalDocumentRepository extends JpaRepository<FiscalDocument, 
               and not exists (select 1 from FiscalDocumentAdditionalInfo ai where ai.document = d)
             """)
     long countWithoutAdditionalInfoCoverage(@Param("tenantId") Long tenantId, @Param("empresaId") Long empresaId);
+
+    @Query("""
+            select d from FiscalDocument d
+            where d.tenantId = :tenantId
+              and d.empresaId = :empresaId
+              and (:model is null or d.model = :model)
+              and (:operationType is null or d.operationType = :operationType)
+              and (:statusDocumento is null or d.statusDocumento = :statusDocumento)
+              and (:emitCnpj is null or d.emitCnpj = :emitCnpj)
+              and (:destCnpj is null or d.destCnpj = :destCnpj)
+              and (:issueDateFrom is null or d.issueDate >= :issueDateFrom)
+              and (:issueDateTo is null or d.issueDate <= :issueDateTo)
+              and (:importacaoId is null or d.importacao.id = :importacaoId)
+            """)
+    Page<FiscalDocument> search(
+            @Param("tenantId") Long tenantId,
+            @Param("empresaId") Long empresaId,
+            @Param("model") Short model,
+            @Param("operationType") String operationType,
+            @Param("statusDocumento") FiscalDocumentStatus statusDocumento,
+            @Param("emitCnpj") String emitCnpj,
+            @Param("destCnpj") String destCnpj,
+            @Param("issueDateFrom") LocalDate issueDateFrom,
+            @Param("issueDateTo") LocalDate issueDateTo,
+            @Param("importacaoId") Long importacaoId,
+            Pageable pageable
+    );
+
+    long countByTenantIdAndEmpresaIdAndIssueDateBetween(Long tenantId, Long empresaId, LocalDate issueDateFrom, LocalDate issueDateTo);
+
+    long countByTenantIdAndEmpresaIdAndIssueDateBetweenAndModel(Long tenantId,
+                                                                 Long empresaId,
+                                                                 LocalDate issueDateFrom,
+                                                                 LocalDate issueDateTo,
+                                                                 Short model);
+
+    long countByTenantIdAndEmpresaIdAndIssueDateBetweenAndStatusDocumento(Long tenantId,
+                                                                           Long empresaId,
+                                                                           LocalDate issueDateFrom,
+                                                                           LocalDate issueDateTo,
+                                                                           FiscalDocumentStatus statusDocumento);
+
+    @Query("""
+            select coalesce(sum(d.totalAmount), 0)
+            from FiscalDocument d
+            where d.tenantId = :tenantId
+              and d.empresaId = :empresaId
+              and d.issueDate >= :issueDateFrom
+              and d.issueDate <= :issueDateTo
+              and d.operationType = :operationType
+            """)
+    BigDecimal sumTotalAmountByOperationType(@Param("tenantId") Long tenantId,
+                                             @Param("empresaId") Long empresaId,
+                                             @Param("issueDateFrom") LocalDate issueDateFrom,
+                                             @Param("issueDateTo") LocalDate issueDateTo,
+                                             @Param("operationType") String operationType);
+
+    @Query("""
+            select coalesce(sum(d.totalIcms), 0)
+            from FiscalDocument d
+            where d.tenantId = :tenantId
+              and d.empresaId = :empresaId
+              and d.issueDate >= :issueDateFrom
+              and d.issueDate <= :issueDateTo
+              and d.operationType = :operationType
+            """)
+    BigDecimal sumTotalIcmsByOperationType(@Param("tenantId") Long tenantId,
+                                           @Param("empresaId") Long empresaId,
+                                           @Param("issueDateFrom") LocalDate issueDateFrom,
+                                           @Param("issueDateTo") LocalDate issueDateTo,
+                                           @Param("operationType") String operationType);
+
+    @Query("""
+            select distinct d.emitCnpj as cnpj, d.emitNome as razaoSocial
+            from FiscalDocument d
+            where d.tenantId = :tenantId
+              and d.empresaId = :empresaId
+              and d.emitCnpj is not null
+              and (
+                    :q is null
+                    or lower(coalesce(d.emitNome, '')) like lower(concat('%', :q, '%'))
+                    or d.emitCnpj like concat('%', :q, '%')
+                  )
+            order by d.emitNome asc
+            """)
+    List<PartyProjection> findDistinctEmitters(@Param("tenantId") Long tenantId,
+                                               @Param("empresaId") Long empresaId,
+                                               @Param("q") String q,
+                                               Pageable pageable);
+
+    @Query("""
+            select distinct d.destCnpj as cnpj, d.destNome as razaoSocial
+            from FiscalDocument d
+            where d.tenantId = :tenantId
+              and d.empresaId = :empresaId
+              and d.destCnpj is not null
+              and (
+                    :q is null
+                    or lower(coalesce(d.destNome, '')) like lower(concat('%', :q, '%'))
+                    or d.destCnpj like concat('%', :q, '%')
+                  )
+            order by d.destNome asc
+            """)
+    List<PartyProjection> findDistinctReceivers(@Param("tenantId") Long tenantId,
+                                                @Param("empresaId") Long empresaId,
+                                                @Param("q") String q,
+                                                Pageable pageable);
+
+    interface PartyProjection {
+        String getCnpj();
+        String getRazaoSocial();
+    }
 }

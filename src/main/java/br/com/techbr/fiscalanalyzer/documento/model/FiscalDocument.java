@@ -76,6 +76,9 @@ public class FiscalDocument {
     @Column(name = "emit_uf", length = 2)
     private String emitUf;
 
+    @Column(name = "emit_municipio", columnDefinition = "text")
+    private String emitMunicipio;
+
     @Column(name = "dest_documento", length = 14)
     private String destDocumento;
 
@@ -91,6 +94,9 @@ public class FiscalDocument {
     @JdbcTypeCode(Types.CHAR)
     @Column(name = "dest_uf", length = 2)
     private String destUf;
+
+    @Column(name = "dest_municipio", columnDefinition = "text")
+    private String destMunicipio;
 
     @Column(name = "total_products", precision = 15, scale = 2)
     private BigDecimal totalProducts;
@@ -109,6 +115,9 @@ public class FiscalDocument {
 
     @Column(name = "total_ipi", precision = 15, scale = 2)
     private BigDecimal totalIpi;
+
+    @Column(name = "total_iss", precision = 15, scale = 2)
+    private BigDecimal totalIss;
 
     @Column(name = "total_tributos", precision = 15, scale = 2)
     private BigDecimal totalTributos;
@@ -224,6 +233,8 @@ public class FiscalDocument {
     public void setEmitIe(String emitIe) { this.emitIe = emitIe; }
     public String getEmitUf() { return emitUf; }
     public void setEmitUf(String emitUf) { this.emitUf = emitUf; }
+    public String getEmitMunicipio() { return emitMunicipio; }
+    public void setEmitMunicipio(String emitMunicipio) { this.emitMunicipio = emitMunicipio; }
     public String getDestDocumento() { return destDocumento; }
     public void setDestDocumento(String destDocumento) { this.destDocumento = destDocumento; }
     public String getDestCnpj() { return destCnpj; }
@@ -234,6 +245,8 @@ public class FiscalDocument {
     public void setDestIe(String destIe) { this.destIe = destIe; }
     public String getDestUf() { return destUf; }
     public void setDestUf(String destUf) { this.destUf = destUf; }
+    public String getDestMunicipio() { return destMunicipio; }
+    public void setDestMunicipio(String destMunicipio) { this.destMunicipio = destMunicipio; }
     public BigDecimal getTotalProducts() { return totalProducts; }
     public void setTotalProducts(BigDecimal totalProducts) { this.totalProducts = totalProducts; }
     public BigDecimal getTotalAmount() { return totalAmount; }
@@ -246,6 +259,8 @@ public class FiscalDocument {
     public void setTotalOutros(BigDecimal totalOutros) { this.totalOutros = totalOutros; }
     public BigDecimal getTotalIpi() { return totalIpi; }
     public void setTotalIpi(BigDecimal totalIpi) { this.totalIpi = totalIpi; }
+    public BigDecimal getTotalIss() { return totalIss; }
+    public void setTotalIss(BigDecimal totalIss) { this.totalIss = totalIss; }
     public BigDecimal getTotalTributos() { return totalTributos; }
     public void setTotalTributos(BigDecimal totalTributos) { this.totalTributos = totalTributos; }
     public BigDecimal getTotalIcms() { return totalIcms; }

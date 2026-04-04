@@ -3,7 +3,7 @@
 Este arquivo é o ponto de entrada da documentação do projeto.
 Quando houver compactação de contexto, comece por aqui.
 
-Data de referência: **2026-03-26**
+Data de referência: **2026-04-04**
 
 ---
 
@@ -66,6 +66,8 @@ Data de referência: **2026-03-26**
 
 - `FRONTEND_SPEC.md`  
   Especificação técnica oficial do front administrativo (stack, fases e contratos).
+- `DOCUMENTS_VIEWER_API_CONTRACT.md`
+  Contrato alvo do módulo de documentos para o front (P0/P1/P2, filtros e payloads).
 - `NEXT_STEPS_AGENT_FRONT.md`  
   Backlog consolidado do que falta implementar no backend para suportar front administrativo
   e autenticação de usuários (JWT/RBAC), além dos alinhamentos de contrato com o agent.

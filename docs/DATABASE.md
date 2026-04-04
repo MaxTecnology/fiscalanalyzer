@@ -60,6 +60,21 @@
     - `fiscal_document_duplicate` (duplicatas `cobr/dup`)
     - `fiscal_document_additional_info` (informações adicionais `infCpl` e `obsCont`)
 
+## Viewer de documentos (V23)
+- `fiscal_document` recebeu colunas adicionais para consultas do front:
+    - `emit_municipio`
+    - `dest_municipio`
+    - `total_iss`
+- `fiscal_item` recebeu:
+    - `unidade`
+- Índices de leitura adicionados para filtros de listagem:
+    - `(tenant_id, empresa_id, issue_date desc)`
+    - `(tenant_id, empresa_id, model, issue_date desc)`
+    - `(tenant_id, empresa_id, operation_type, issue_date desc)`
+    - `(tenant_id, empresa_id, emit_cnpj, issue_date desc)`
+    - `(tenant_id, empresa_id, dest_cnpj, issue_date desc)`
+    - `(tenant_id, empresa_id, importacao_id)`
+
 ## Cobertura fiscal operacional (Fase 3)
 - Endpoints de cobertura/backfill usam o schema atual da `V20` (sem nova migration).
 - Backfill relê XML por:

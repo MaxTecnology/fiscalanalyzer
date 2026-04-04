@@ -46,17 +46,20 @@ public class NfeXmlParser {
             String emitName = null;
             String emitIe = null;
             String emitUf = null;
+            String emitMunicipio = null;
             String destDocument = null;
             String destCnpj = null;
             String destName = null;
             String destIe = null;
             String destUf = null;
+            String destMunicipio = null;
             BigDecimal totalProducts = null;
             BigDecimal totalAmount = null;
             BigDecimal totalFrete = null;
             BigDecimal totalDesconto = null;
             BigDecimal totalOutros = null;
             BigDecimal totalIpi = null;
+            BigDecimal totalIss = null;
             BigDecimal totalTributos = null;
             BigDecimal totalIcms = null;
             BigDecimal totalPis = null;
@@ -236,6 +239,19 @@ public class NfeXmlParser {
                             continue;
                         }
                     }
+                    if ("xMun".equals(name)) {
+                        String parent = parentOf(stack);
+                        if ("enderEmit".equals(parent) && emitMunicipio == null) {
+                            emitMunicipio = trimOrNull(reader.getElementText());
+                            stack.pop();
+                            continue;
+                        }
+                        if ("enderDest".equals(parent) && destMunicipio == null) {
+                            destMunicipio = trimOrNull(reader.getElementText());
+                            stack.pop();
+                            continue;
+                        }
+                    }
                     if ("vNF".equals(name)) {
                         String parent = parentOf(stack);
                         if ("ICMSTot".equals(parent)) {
@@ -293,6 +309,14 @@ public class NfeXmlParser {
                         String parent = parentOf(stack);
                         if ("ICMSTot".equals(parent)) {
                             totalIpi = parseBigDecimal(reader.getElementText());
+                            stack.pop();
+                            continue;
+                        }
+                    }
+                    if ("vISS".equals(name)) {
+                        String parent = parentOf(stack);
+                        if ("ICMSTot".equals(parent)) {
+                            totalIss = parseBigDecimal(reader.getElementText());
                             stack.pop();
                             continue;
                         }
@@ -454,6 +478,11 @@ public class NfeXmlParser {
                                 }
                                 case "CFOP" -> {
                                     currentItem.cfop = reader.getElementText();
+                                    stack.pop();
+                                    continue;
+                                }
+                                case "uCom" -> {
+                                    currentItem.unidade = trimOrNull(reader.getElementText());
                                     stack.pop();
                                     continue;
                                 }
@@ -690,17 +719,20 @@ public class NfeXmlParser {
                     emitName,
                     emitIe,
                     emitUf,
+                    emitMunicipio,
                     destDocument,
                     destCnpj,
                     destName,
                     destIe,
                     destUf,
+                    destMunicipio,
                     totalProducts,
                     totalAmount,
                     totalFrete,
                     totalDesconto,
                     totalOutros,
                     totalIpi,
+                    totalIss,
                     totalTributos,
                     totalIcms,
                     totalPis,
@@ -821,6 +853,7 @@ public class NfeXmlParser {
         String productDescription;
         String ncm;
         String cfop;
+        String unidade;
         String cstIcms;
         String csosn;
         BigDecimal quantity;
@@ -843,6 +876,7 @@ public class NfeXmlParser {
                     productDescription,
                     ncm,
                     cfop,
+                    unidade,
                     cstIcms,
                     csosn,
                     quantity,

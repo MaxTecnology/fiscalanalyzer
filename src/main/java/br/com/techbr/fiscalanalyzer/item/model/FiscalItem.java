@@ -32,6 +32,9 @@ public class FiscalItem {
     @Column(name = "cfop", length = 4)
     private String cfop;
 
+    @Column(name = "unidade", length = 10)
+    private String unidade;
+
     @Column(name = "cst_icms", length = 3)
     private String cstIcms;
 
@@ -88,6 +91,8 @@ public class FiscalItem {
     public void setNcm(String ncm) { this.ncm = ncm; }
     public String getCfop() { return cfop; }
     public void setCfop(String cfop) { this.cfop = cfop; }
+    public String getUnidade() { return unidade; }
+    public void setUnidade(String unidade) { this.unidade = unidade; }
     public String getCstIcms() { return cstIcms; }
     public void setCstIcms(String cstIcms) { this.cstIcms = cstIcms; }
     public String getCsosn() { return csosn; }

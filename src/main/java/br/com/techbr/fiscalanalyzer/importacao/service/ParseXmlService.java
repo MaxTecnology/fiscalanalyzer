@@ -216,17 +216,20 @@ public class ParseXmlService {
         doc.setEmitNome(parsed.emitName());
         doc.setEmitIe(parsed.emitIe());
         doc.setEmitUf(parsed.emitUf());
+        doc.setEmitMunicipio(parsed.emitMunicipio());
         doc.setDestDocumento(parsed.destDocument());
         doc.setDestCnpj(parsed.destCnpj());
         doc.setDestNome(parsed.destName());
         doc.setDestIe(parsed.destIe());
         doc.setDestUf(parsed.destUf());
+        doc.setDestMunicipio(parsed.destMunicipio());
         doc.setTotalProducts(parsed.totalProducts());
         doc.setTotalAmount(parsed.totalAmount());
         doc.setTotalFrete(parsed.totalFrete());
         doc.setTotalDesconto(parsed.totalDesconto());
         doc.setTotalOutros(parsed.totalOutros());
         doc.setTotalIpi(parsed.totalIpi());
+        doc.setTotalIss(parsed.totalIss());
         doc.setTotalTributos(parsed.totalTributos());
         doc.setTotalIcms(parsed.totalIcms());
         doc.setTotalPis(parsed.totalPis());
@@ -586,6 +589,7 @@ public class ParseXmlService {
         item.setProductDescription(parsed.productDescription());
         item.setNcm(parsed.ncm());
         item.setCfop(parsed.cfop());
+        item.setUnidade(parsed.unidade());
         item.setCstIcms(parsed.cstIcms());
         item.setCsosn(parsed.csosn());
         item.setQuantity(parsed.quantity());

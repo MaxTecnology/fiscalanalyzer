@@ -1,0 +1,49 @@
+package br.com.techbr.fiscalanalyzer.documento.dto;
+
+import java.math.BigDecimal;
+import java.time.Instant;
+import java.time.LocalDate;
+import java.util.List;
+
+public record FiscalDocumentDetailResponse(
+        short model,
+        String accessKey,
+        LocalDate issueDate,
+        String operationType,
+        String statusDocumento,
+        String emitCnpj,
+        String emitRazaoSocial,
+        String emitIe,
+        String emitUf,
+        String emitMunicipio,
+        String destCnpj,
+        String destRazaoSocial,
+        String destIe,
+        String destUf,
+        String destMunicipio,
+        Integer nfeNumero,
+        String nfeSerie,
+        String naturezaOperacao,
+        BigDecimal totalProducts,
+        BigDecimal totalAmount,
+        BigDecimal icmsTotal,
+        BigDecimal pisTotal,
+        BigDecimal cofinsTotal,
+        BigDecimal ipiTotal,
+        BigDecimal issTotal,
+        BigDecimal freteTotal,
+        BigDecimal descontoTotal,
+        BigDecimal outrosTotal,
+        BigDecimal tributosTotal,
+        Long importacaoId,
+        String xmlPath,
+        String xmlHash,
+        String protocoloNumero,
+        Integer protocoloStatus,
+        String protocoloMotivo,
+        Instant protocoloRecebimento,
+        Instant cancelledAt,
+        String cancelProtocol,
+        String cancelReason,
+        List<FiscalDocumentItemDetailResponse> items
+) {}

@@ -45,13 +45,14 @@ Leitura obrigatória (ordem):
 1. `docs/DOCS_INDEX.md`
 2. `docs/README_ARCHITECTURE.md`
 3. `docs/FRONTEND_SPEC.md`
-4. `docs/NEXT_STEPS_AGENT_FRONT.md`
-5. `docs/FiscalAnalyzer.routes.http`
-6. `docs/TENANT_EMPRESA_USUARIO_DECISION.md`
-7. `docs/IDENTITY_FOUNDATION_CHECKLIST.md`
-8. `docs/DATABASE.md`
-9. `docs/DOMAIN.md`
-10. `docs/CONVENTIONS.md`
+4. `docs/DOCUMENTS_VIEWER_API_CONTRACT.md`
+5. `docs/NEXT_STEPS_AGENT_FRONT.md`
+6. `docs/FiscalAnalyzer.routes.http`
+7. `docs/TENANT_EMPRESA_USUARIO_DECISION.md`
+8. `docs/IDENTITY_FOUNDATION_CHECKLIST.md`
+9. `docs/DATABASE.md`
+10. `docs/DOMAIN.md`
+11. `docs/CONVENTIONS.md`
 
 Objetivo do pacote:
 - iniciar front do zero com APIs e regras atuais;

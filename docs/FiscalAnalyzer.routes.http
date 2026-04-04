@@ -179,6 +179,81 @@ GET {{baseUrl}}/documents/{{accessKey}}?tenantId={{tenantId}}&empresaId={{empres
 Authorization: Bearer {{userJwt}}
 
 ###
+### Listagem de documentos (viewer avançado)
+GET {{baseUrl}}/documents?tenantId={{tenantId}}&empresaId={{empresaId}}&page=0&size=20&sort=issueDate,desc
+Authorization: Bearer {{userJwt}}
+
+###
+### Listagem de documentos com filtros principais
+GET {{baseUrl}}/documents?tenantId={{tenantId}}&empresaId={{empresaId}}&model=55&operationType=S&statusDocumento=ATIVA&issueDateFrom=2026-03-01&issueDateTo=2026-03-31&page=0&size=20&sort=totalAmount,desc
+Authorization: Bearer {{userJwt}}
+
+###
+### Download XML original por accessKey
+GET {{baseUrl}}/documents/{{accessKey}}/xml?tenantId={{tenantId}}&empresaId={{empresaId}}
+Authorization: Bearer {{userJwt}}
+
+###
+### Timeline de eventos da nota
+GET {{baseUrl}}/documents/{{accessKey}}/events?tenantId={{tenantId}}&empresaId={{empresaId}}
+Authorization: Bearer {{userJwt}}
+
+###
+### Resumo financeiro do período
+GET {{baseUrl}}/documents/summary?tenantId={{tenantId}}&empresaId={{empresaId}}&issueDateFrom=2026-03-01&issueDateTo=2026-03-31
+Authorization: Bearer {{userJwt}}
+
+###
+### Exportar documentos (CSV)
+POST {{baseUrl}}/documents/export
+Authorization: Bearer {{userJwt}}
+Content-Type: application/json
+
+{
+  "tenantId": {{tenantId}},
+  "empresaId": {{empresaId}},
+  "model": 55,
+  "operationType": "S",
+  "issueDateFrom": "2026-03-01",
+  "issueDateTo": "2026-03-31",
+  "format": "CSV"
+}
+
+###
+### Exportar documentos (PDF)
+POST {{baseUrl}}/documents/export
+Authorization: Bearer {{userJwt}}
+Content-Type: application/json
+
+{
+  "tenantId": {{tenantId}},
+  "empresaId": {{empresaId}},
+  "issueDateFrom": "2026-03-01",
+  "issueDateTo": "2026-03-31",
+  "format": "PDF"
+}
+
+###
+### Emitentes distintos (autocomplete de filtro)
+GET {{baseUrl}}/documents/emitters?tenantId={{tenantId}}&empresaId={{empresaId}}&q=TECH&limit=20
+Authorization: Bearer {{userJwt}}
+
+###
+### Destinatários distintos (autocomplete de filtro)
+GET {{baseUrl}}/documents/receivers?tenantId={{tenantId}}&empresaId={{empresaId}}&q=SHOP&limit=20
+Authorization: Bearer {{userJwt}}
+
+###
+### Estatísticas por CFOP (top N)
+GET {{baseUrl}}/documents/stats/cfop?tenantId={{tenantId}}&empresaId={{empresaId}}&issueDateFrom=2026-03-01&issueDateTo=2026-03-31&limit=50
+Authorization: Bearer {{userJwt}}
+
+###
+### Estatísticas por NCM (top N)
+GET {{baseUrl}}/documents/stats/ncm?tenantId={{tenantId}}&empresaId={{empresaId}}&issueDateFrom=2026-03-01&issueDateTo=2026-03-31&limit=50
+Authorization: Bearer {{userJwt}}
+
+###
 ### Cobertura de documentos (resumo)
 GET {{baseUrl}}/documents/coverage?tenantId={{tenantId}}&empresaId={{empresaId}}
 Authorization: Bearer {{userJwt}}

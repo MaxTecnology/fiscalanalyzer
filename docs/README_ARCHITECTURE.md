@@ -337,7 +337,7 @@ Fases:
 - Fase 1 — Upload + Storage + publicação de `ExtractZipMessage` — **CONCLUÍDA**
 - Fase 2 — Worker de extração (ZIP streaming, `import_item`, idempotência) — **CONCLUÍDA**
 - Fase 3 — Worker de parsing (streaming XML, `fiscal_document`, registry, AFTER_COMMIT) — **CONCLUÍDA**
-- Fase 4 — Read Model e endpoints de consulta (`/imports`, `/imports/{id}/items`, `/documents/{accessKey}`) — **CONCLUÍDA**
+- Fase 4 — Read Model e endpoints de consulta (`/imports`, `/imports/{id}/items`, `/documents`) — **CONCLUÍDA**
 - Fase 5 — Hardening para alto volume (1M+ XML): ingestão por agente/manifests, tuning de concorrência, custo/throughput e operação — **CONCLUÍDA (BACKEND CORE)**
 - Fase 6 — Fundação de identidade (`tenant`, `empresa`, `usuário` local, FKs compostas, APIs admin) — **CONCLUÍDA**
 - Fase 7 — Autenticação de usuário (JWT/RBAC) + consolidação operacional para front/agent — **EM ANDAMENTO**
@@ -360,7 +360,7 @@ Status atual:
 - Fase 7.2 iniciada: RBAC mínimo ativo por role + escopo de empresa nas rotas de operação:
   - escrita: `POST /imports/upload` (roles `ADMIN`/`OPERADOR`)
   - escrita operacional: `POST /imports/{id}/reprocess` (roles `ADMIN`/`OPERADOR`)
-  - leitura: `GET /imports/{id}`, `GET /imports/{id}/items`, `GET /imports/{id}/failures-summary`, `GET /documents/{accessKey}` (roles `ADMIN`/`OPERADOR`/`LEITOR`)
+  - leitura: `GET /imports/{id}`, `GET /imports/{id}/items`, `GET /imports/{id}/failures-summary`, `GET /documents`, `GET /documents/{accessKey}`, `GET /documents/{accessKey}/xml`, `GET /documents/{accessKey}/events`, `GET /documents/summary`, `GET /documents/emitters`, `GET /documents/receivers`, `GET /documents/stats/*` (roles `ADMIN`/`OPERADOR`/`LEITOR`)
   - usuários não-admin precisam de vínculo explícito em `app_user_empresa` para `tenantId/empresaId`.
 - Hardening operacional ativo: Redis para rate-limit/lockout distribuído, auditoria dedicada e retenção automática dos eventos de segurança.
 - Decisão arquitetural de identidade aprovada em `TENANT_EMPRESA_USUARIO_DECISION.md`; implementação guiada por `IDENTITY_FOUNDATION_CHECKLIST.md`.
