@@ -131,6 +131,23 @@ public class DocumentController {
         return ResponseEntity.ok().headers(headers).body(xml.payload());
     }
 
+    @GetMapping("/{accessKey}/danfe")
+    public ResponseEntity<byte[]> downloadDanfe(
+            @PathVariable String accessKey,
+            @RequestParam @NotNull @Min(1) Long tenantId,
+            @RequestParam @NotNull @Min(1) Long empresaId,
+            HttpServletRequest servletRequest
+    ) {
+        var auth = UserAuthRequestContext.required(servletRequest);
+        userAuthorizationService.assertCanRead(auth, tenantId, empresaId);
+
+        var danfe = documentQueryService.downloadDanfe(tenantId, empresaId, accessKey);
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.parseMediaType(danfe.contentType()));
+        headers.setContentDisposition(ContentDisposition.attachment().filename(danfe.fileName()).build());
+        return ResponseEntity.ok().headers(headers).body(danfe.payload());
+    }
+
     @GetMapping("/{accessKey}/events")
     public List<FiscalDocumentEventResponse> listEvents(
             @PathVariable String accessKey,

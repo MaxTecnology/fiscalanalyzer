@@ -194,6 +194,11 @@ GET {{baseUrl}}/documents/{{accessKey}}/xml?tenantId={{tenantId}}&empresaId={{em
 Authorization: Bearer {{userJwt}}
 
 ###
+### Download DANFE (PDF) por accessKey
+GET {{baseUrl}}/documents/27240229422082000144653020000750091241333863/danfe?tenantId={{tenantId}}&empresaId={{empresaId}}
+Authorization: Bearer {{userJwt}}
+
+###
 ### Timeline de eventos da nota
 GET {{baseUrl}}/documents/{{accessKey}}/events?tenantId={{tenantId}}&empresaId={{empresaId}}
 Authorization: Bearer {{userJwt}}

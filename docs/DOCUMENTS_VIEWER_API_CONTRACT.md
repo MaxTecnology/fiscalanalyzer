@@ -14,6 +14,7 @@ Data de referência: **2026-04-04**
   - `GET /documents` (filtros + paginação + sort controlado)
   - `GET /documents/{accessKey}` (detalhe enriquecido com itens)
   - `GET /documents/{accessKey}/xml` (download XML original para importação MANIFEST e ZIP)
+  - `GET /documents/{accessKey}/danfe` (download DANFE PDF para NFe/NFCe)
   - `GET /documents/{accessKey}/events`
   - `GET /documents/summary`
   - `POST /documents/export` (CSV/XLSX/PDF)
@@ -164,6 +165,23 @@ Download do XML original para auditoria.
 - `Content-Type: application/xml`
 - `Content-Disposition: attachment; filename="{accessKey}.xml"`
 - body: XML bruto
+
+---
+
+### 2.4 GET `/documents/{accessKey}/danfe`
+
+Download do DANFE em PDF (representação auxiliar do XML fiscal).
+
+### Query params
+
+- `tenantId` (obrigatório)
+- `empresaId` (obrigatório)
+
+### Response 200
+
+- `Content-Type: application/pdf`
+- `Content-Disposition: attachment; filename="{accessKey}-danfe.pdf"`
+- body: PDF do DANFE
 
 ---
 

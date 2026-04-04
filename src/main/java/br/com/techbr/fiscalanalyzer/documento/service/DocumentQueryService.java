@@ -59,17 +59,20 @@ public class DocumentQueryService {
     private final FiscalDocumentEventRepository fiscalDocumentEventRepository;
     private final TenantEmpresaValidationService tenantEmpresaValidationService;
     private final StorageService storageService;
+    private final DanfeGeneratorService danfeGeneratorService;
 
     public DocumentQueryService(FiscalDocumentRepository fiscalDocumentRepository,
                                 FiscalItemRepository fiscalItemRepository,
                                 FiscalDocumentEventRepository fiscalDocumentEventRepository,
                                 TenantEmpresaValidationService tenantEmpresaValidationService,
-                                StorageService storageService) {
+                                StorageService storageService,
+                                DanfeGeneratorService danfeGeneratorService) {
         this.fiscalDocumentRepository = fiscalDocumentRepository;
         this.fiscalItemRepository = fiscalItemRepository;
         this.fiscalDocumentEventRepository = fiscalDocumentEventRepository;
         this.tenantEmpresaValidationService = tenantEmpresaValidationService;
         this.storageService = storageService;
+        this.danfeGeneratorService = danfeGeneratorService;
     }
 
     @Transactional(readOnly = true)
@@ -218,6 +221,18 @@ public class DocumentQueryService {
         FiscalDocument doc = findDocument(tenantId, empresaId, normalizedAccessKey);
         byte[] payload = readXmlBytes(doc);
         return new DocumentXmlDownload(payload, normalizedAccessKey + ".xml", "application/xml");
+    }
+
+    @Transactional(readOnly = true)
+    public DocumentDanfeDownload downloadDanfe(Long tenantId, Long empresaId, String accessKey) {
+        tenantEmpresaValidationService.validateAtivo(tenantId, empresaId);
+        String normalizedAccessKey = normalizeAccessKey(accessKey);
+
+        FiscalDocument doc = findDocument(tenantId, empresaId, normalizedAccessKey);
+        byte[] xmlPayload = readXmlBytes(doc);
+        String xml = new String(xmlPayload, StandardCharsets.UTF_8);
+        byte[] danfePdf = danfeGeneratorService.generatePdf(xml, doc.getModel(), doc.getQrCodeUrl());
+        return new DocumentDanfeDownload(danfePdf, normalizedAccessKey + "-danfe.pdf", "application/pdf");
     }
 
     @Transactional(readOnly = true)
@@ -1058,6 +1073,11 @@ public class DocumentQueryService {
     public record DocumentExportFile(byte[] payload,
                                      String fileName,
                                      String contentType) {
+    }
+
+    public record DocumentDanfeDownload(byte[] payload,
+                                        String fileName,
+                                        String contentType) {
     }
 
     private record DocumentExportRow(String accessKey,

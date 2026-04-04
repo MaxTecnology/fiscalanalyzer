@@ -215,6 +215,25 @@ class DocumentControllerTest {
     }
 
     @Test
+    void download_document_danfe() throws Exception {
+        when(queryService.downloadDanfe(1L, 2L, "35191111111111111111550010000000011000000010"))
+                .thenReturn(new DocumentQueryService.DocumentDanfeDownload(
+                        "%PDF-1.4".getBytes(),
+                        "35191111111111111111550010000000011000000010-danfe.pdf",
+                        "application/pdf"
+                ));
+
+        mockMvc.perform(get("/documents/35191111111111111111550010000000011000000010/danfe")
+                        .param("tenantId", "1")
+                        .param("empresaId", "2")
+                        .requestAttr(UserAuthRequestContext.REQUEST_ATTRIBUTE,
+                                new UserAuthContext(7L, "leitor@empresa.com", List.of("LEITOR"))))
+                .andExpect(status().isOk())
+                .andExpect(content().contentType("application/pdf"))
+                .andExpect(header().string("Content-Disposition", "attachment; filename=\"35191111111111111111550010000000011000000010-danfe.pdf\""));
+    }
+
+    @Test
     void list_document_events() throws Exception {
         when(queryService.listEvents(1L, 2L, "35191111111111111111550010000000011000000010"))
                 .thenReturn(List.of(new FiscalDocumentEventResponse(

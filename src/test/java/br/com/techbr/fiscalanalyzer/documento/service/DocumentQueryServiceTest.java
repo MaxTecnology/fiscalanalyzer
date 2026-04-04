@@ -57,6 +57,9 @@ class DocumentQueryServiceTest {
     @Mock
     private StorageService storageService;
 
+    @Mock
+    private DanfeGeneratorService danfeGeneratorService;
+
     @InjectMocks
     private DocumentQueryService service;
 
@@ -120,6 +123,27 @@ class DocumentQueryServiceTest {
 
         assertEquals("35191111111111111111550010000000011000000010.xml", xml.fileName());
         assertEquals("<NFe/>", new String(xml.payload()));
+    }
+
+    @Test
+    void downloadDanfe_manifest_geraPdf() {
+        FiscalDocument document = buildDocument();
+        Importacao importacao = new Importacao();
+        importacao.setSourceType(ImportacaoSourceType.MANIFEST);
+        document.setImportacao(importacao);
+
+        when(fiscalDocumentRepository.findByTenantIdAndEmpresaIdAndAccessKey(1L, 2L, document.getAccessKey()))
+                .thenReturn(Optional.of(document));
+        when(storageService.get("1/2/doc.xml"))
+                .thenReturn(new ByteArrayInputStream("<NFe/>".getBytes()));
+        when(danfeGeneratorService.generatePdf("<NFe/>", (short) 55, null))
+                .thenReturn("%PDF-1.4".getBytes());
+
+        var danfe = service.downloadDanfe(1L, 2L, document.getAccessKey());
+
+        assertEquals("35191111111111111111550010000000011000000010-danfe.pdf", danfe.fileName());
+        assertEquals("application/pdf", danfe.contentType());
+        assertEquals("%PDF-1.4", new String(danfe.payload()));
     }
 
     @Test
