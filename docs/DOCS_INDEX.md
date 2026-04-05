@@ -85,6 +85,9 @@ Data de referência: **2026-04-04**
 - `XML_FIELD_COVERAGE_PHASE3.md`
   Operação de cobertura da Fase 3: read model de cobertura e backfill
   controlado para XML direto e ZIP legado.
+- `SPED_FISCAL_IMPLEMENTATION_PLAN.md`
+  Plano técnico oficial de implementação de SPED Fiscal (EFD ICMS/IPI),
+  incluindo schema V1, fases e estratégia de conciliação com XML.
 
 ---
 

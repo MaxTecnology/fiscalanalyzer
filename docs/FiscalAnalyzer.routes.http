@@ -59,6 +59,7 @@ Authorization: Bearer {{userJwt}}
 ###
 ### Observação de RBAC (fase atual)
 ### - Upload ZIP: ADMIN/OPERADOR (com escopo tenant/empresa).
+### - Upload SPED (/sped/files/upload): ADMIN/OPERADOR (com escopo tenant/empresa).
 ### - Consultas /imports e /documents: ADMIN/OPERADOR/LEITOR (com escopo tenant/empresa).
 ### - ADMIN global pode operar sem vínculo explícito em app_user_empresa.
 
@@ -87,6 +88,86 @@ Content-Type: application/zip
 
 < ./docs/nfe.zip
 --UploadBoundary--
+
+###
+### Upload SPED Fiscal TXT (novo)
+POST {{baseUrl}}/sped/files/upload?tenantId={{tenantId}}&empresaId={{empresaId}}
+Authorization: Bearer {{userJwt}}
+Content-Type: multipart/form-data; boundary=SpedTxtBoundary
+
+--SpedTxtBoundary
+Content-Disposition: form-data; name="file"; filename="sped_exemplo.txt"
+Content-Type: text/plain
+
+< ./docs/sped_exemplo.txt
+--SpedTxtBoundary--
+
+###
+### Upload SPED Fiscal ZIP com múltiplos TXT (novo)
+POST {{baseUrl}}/sped/files/upload?tenantId={{tenantId}}&empresaId={{empresaId}}
+Authorization: Bearer {{userJwt}}
+Content-Type: multipart/form-data; boundary=SpedZipBoundary
+
+--SpedZipBoundary
+Content-Disposition: form-data; name="file"; filename="sped_lote_exemplo.zip"
+Content-Type: application/zip
+
+< ./docs/sped_lote_exemplo.zip
+--SpedZipBoundary--
+
+###
+### Listar arquivos SPED (paginado)
+GET {{baseUrl}}/sped/files?tenantId={{tenantId}}&empresaId={{empresaId}}&page=0&size=20&sort=createdAt,desc
+Authorization: Bearer {{userJwt}}
+
+###
+### Listar arquivos SPED filtrando por status
+GET {{baseUrl}}/sped/files?tenantId={{tenantId}}&empresaId={{empresaId}}&status=FALHA&page=0&size=20
+Authorization: Bearer {{userJwt}}
+
+###
+### Detalhe de arquivo SPED
+GET {{baseUrl}}/sped/files/1?tenantId={{tenantId}}&empresaId={{empresaId}}
+Authorization: Bearer {{userJwt}}
+
+###
+### Conciliação básica SPED x XML (por arquivo)
+GET {{baseUrl}}/sped/files/1/reconciliation?tenantId={{tenantId}}&empresaId={{empresaId}}&page=0&size=50
+Authorization: Bearer {{userJwt}}
+
+###
+### Status esperados na reconciliação SPED:
+### - OK
+### - FALTANTE_XML
+### - VALOR_DIVERGENTE
+### - ITEM_DIVERGENTE
+### - IMPOSTO_DIVERGENTE
+### - SEM_CHAVE
+###
+### Campos de comparação no payload:
+### totalSped/totalXml, totalIcmsSped/totalIcmsXml, totalPisSped/totalPisXml,
+### totalCofinsSped/totalCofinsXml, totalItemsSped/totalItemsXml, divergenceReason.
+
+###
+### Resumo SPED por período
+GET {{baseUrl}}/sped/summary?tenantId={{tenantId}}&empresaId={{empresaId}}&periodoInicio=2026-01-01&periodoFim=2026-01-31
+Authorization: Bearer {{userJwt}}
+
+###
+### Resumo de conciliação SPED x XML (período)
+GET {{baseUrl}}/sped/reconciliation/summary?tenantId={{tenantId}}&empresaId={{empresaId}}&periodoInicio=2026-01-01&periodoFim=2026-01-31&limit=20
+Authorization: Bearer {{userJwt}}
+
+###
+### Drill-down de divergências SPED (paginado)
+### status opcional; quando omitido, retorna apenas divergências (exclui OK)
+GET {{baseUrl}}/sped/reconciliation/divergences?tenantId={{tenantId}}&empresaId={{empresaId}}&periodoInicio=2026-01-01&periodoFim=2026-01-31&status=FALTANTE_XML&accessKey=35191111111111111111550010000000011000000010&page=0&size=50
+Authorization: Bearer {{userJwt}}
+
+###
+### Reprocessar arquivo SPED
+POST {{baseUrl}}/sped/files/1/reprocess?tenantId={{tenantId}}&empresaId={{empresaId}}
+Authorization: Bearer {{userJwt}}
 
 ###
 ### Manifest (rota principal)

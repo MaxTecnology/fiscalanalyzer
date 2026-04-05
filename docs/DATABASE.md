@@ -159,3 +159,57 @@
     - `OFFLINE`
     - `BLOCKED`
     - `REVOKED`
+
+## Fundação SPED Fiscal (V24)
+- Nova tabela `sped_fiscal_file` para controle de ingestão de arquivo SPED:
+    - escopo: `tenant_id`, `empresa_id`
+    - origem: `source_type` (`TXT` ou `ZIP_ENTRY`)
+    - status: `PENDENTE_PARSE`, `PROCESSANDO`, `PROCESSADO`, `FALHA`
+    - arquivo: `original_file_name`, `storage_object_key`, `zip_entry_name`
+    - integridade: `hash_sha256`, `content_size`, `content_type`
+    - metadados de parse: `layout_version`, `periodo_inicio`, `periodo_fim`, contagem de linhas
+    - erro operacional: `erro_codigo`, `erro_mensagem`
+- Idempotência:
+    - `UNIQUE (tenant_id, empresa_id, hash_sha256)`
+- Índices operacionais:
+    - `(tenant_id, empresa_id, status, created_at desc)`
+    - `(tenant_id, empresa_id, periodo_inicio, periodo_fim)`
+    - `(tenant_id, empresa_id, created_at desc)`
+- Integridade referencial:
+    - FK composta `(empresa_id, tenant_id) -> empresa(id, tenant_id)` com `NOT VALID` + validação condicional.
+
+## Documentos SPED C100 (V25)
+- Nova tabela `sped_fiscal_c100` para persistir documentos fiscais do SPED por arquivo:
+    - vínculo: `file_id -> sped_fiscal_file.id` (`ON DELETE CASCADE`)
+    - escopo: `tenant_id`, `empresa_id`
+    - origem de linha: `linha_origem`
+    - chaves de documento: `cod_mod`, `serie`, `num_doc`, `chv_nfe`, `dt_doc`, `dt_es`
+    - valores fiscais: `vl_doc`, `vl_desc`, `vl_merc`, `vl_bc_icms`, `vl_icms`, `vl_bc_icms_st`, `vl_icms_st`, `vl_ipi`, `vl_pis`, `vl_cofins`, `vl_pis_st`, `vl_cofins_st`
+- Idempotência intra-arquivo:
+    - `UNIQUE (file_id, linha_origem)`
+- Índices operacionais:
+    - `(file_id)`
+    - `(tenant_id, empresa_id, chv_nfe)`
+    - `(tenant_id, empresa_id, dt_doc)`
+- Integridade referencial:
+    - FK composta `(empresa_id, tenant_id) -> empresa(id, tenant_id)` com `NOT VALID` + validação condicional.
+
+## Blocos SPED complementares (V26)
+- Novas tabelas:
+    - `sped_fiscal_participant` (registro `0150`);
+    - `sped_fiscal_c170` (itens `C170`);
+    - `sped_fiscal_c190` (analítico ICMS `C190`);
+    - `sped_fiscal_e110` (apuração `E110`);
+    - `sped_fiscal_e111` (ajustes `E111`).
+- Relações:
+    - `sped_fiscal_participant.file_id -> sped_fiscal_file.id`
+    - `sped_fiscal_c170.c100_id -> sped_fiscal_c100.id`
+    - `sped_fiscal_c190.c100_id -> sped_fiscal_c100.id`
+    - `sped_fiscal_e110.file_id -> sped_fiscal_file.id`
+    - `sped_fiscal_e111.e110_id -> sped_fiscal_e110.id`
+- Idempotência por linha:
+    - `UNIQUE (file_id, linha_origem)` para `0150` e `E110`;
+    - `UNIQUE (c100_id, linha_origem)` para `C170` e `C190`;
+    - `UNIQUE (e110_id, linha_origem)` para `E111`.
+- Parse/reprocesso:
+    - ao reprocessar arquivo SPED, os registros de blocos persistidos para o `file_id` são recriados em transação única.

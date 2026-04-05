@@ -2,7 +2,7 @@
 
 Objetivo: consolidar o que ainda falta no backend antes de iniciar front administrativo e rollout final do agent.
 
-Data de referência: **2026-03-25**
+Data de referência: **2026-04-04**
 
 ---
 
@@ -10,6 +10,7 @@ Data de referência: **2026-03-25**
 
 Implementado no backend:
 - pipeline ZIP e MANIFEST funcional (upload/extract/parse/read model);
+- fundação de ingestão SPED (`POST /sped/files/upload`) com suporte a `.txt` e `.zip` com múltiplos `.txt`;
 - segurança do agent com ApiKey, upload URL, rate-limit/lockout distribuído, DLQ e auditoria;
 - fundação de identidade (`tenant`, `empresa`, `app_user`, roles e vínculos);
 - autenticação local:
@@ -60,6 +61,41 @@ Escopo:
 
 Critério de aceite:
 - sem impacto no contrato atual do agent.
+
+## Fase 8.1 — SPED Fiscal (fundação concluída)
+
+Escopo:
+- ingestão EFD ICMS/IPI com upload `.txt` e `.zip` (múltiplos `.txt`);
+- persistência de `sped_fiscal_file`;
+- enfileiramento AFTER_COMMIT em `import.sped.parse`.
+
+## Fase 8.2 — SPED Fiscal (próxima)
+
+Escopo:
+- parser streaming de registros SPED (`0000`, `0150`, `C100`, `C170`, `C190`, `E110`, `E111`, `9999`);
+- conciliação SPED x XML importado (nota, itens e impostos).
+
+Status atual:
+- worker de parse SPED já ativo com leitura streaming para `TXT` e `ZIP_ENTRY`;
+- parser SPED já persiste blocos: `0150`, `C100`, `C170`, `C190`, `E110`, `E111` + metadados (`0000`/`9999`);
+- read model SPED inicial disponível para front:
+  - `GET /sped/files`
+  - `GET /sped/files/{id}`
+  - `GET /sped/files/{id}/reconciliation`
+  - `GET /sped/summary`
+  - `POST /sped/files/{id}/reprocess`
+
+Próximo passo objetivo:
+- integrar front SPED com:
+  - resumo `GET /sped/reconciliation/summary`;
+  - drill-down `GET /sped/reconciliation/divergences`.
+
+Documento base:
+- `SPED_FISCAL_IMPLEMENTATION_PLAN.md`
+
+Critério de aceite:
+- relatório de divergências por arquivo/período disponível por API;
+- sem regressão do pipeline atual de XML (ZIP/MANIFEST).
 
 ---
 

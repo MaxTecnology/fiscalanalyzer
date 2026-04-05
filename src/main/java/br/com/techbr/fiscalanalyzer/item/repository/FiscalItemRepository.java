@@ -52,9 +52,29 @@ public interface FiscalItemRepository extends JpaRepository<FiscalItem, Long> {
                                              @Param("issueDateTo") LocalDate issueDateTo,
                                              Pageable pageable);
 
+    @Query("""
+            select i.document.id as documentId,
+                   count(i.id) as totalItens,
+                   coalesce(sum(i.icmsValue), 0) as totalIcms,
+                   coalesce(sum(i.pisValue), 0) as totalPis,
+                   coalesce(sum(i.cofinsValue), 0) as totalCofins
+            from FiscalItem i
+            where i.document.id in :documentIds
+            group by i.document.id
+            """)
+    List<DocumentItemStatsProjection> summarizeByDocumentIds(@Param("documentIds") List<Long> documentIds);
+
     interface CodeStatsProjection {
         String getCodigo();
         Long getTotalItens();
         BigDecimal getTotalValor();
+    }
+
+    interface DocumentItemStatsProjection {
+        Long getDocumentId();
+        Long getTotalItens();
+        BigDecimal getTotalIcms();
+        BigDecimal getTotalPis();
+        BigDecimal getTotalCofins();
     }
 }

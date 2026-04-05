@@ -16,6 +16,7 @@ import java.util.Optional;
 public interface FiscalDocumentRepository extends JpaRepository<FiscalDocument, Long>,
         JpaSpecificationExecutor<FiscalDocument> {
     Optional<FiscalDocument> findByTenantIdAndEmpresaIdAndAccessKey(Long tenantId, Long empresaId, String accessKey);
+    List<FiscalDocument> findByTenantIdAndEmpresaIdAndAccessKeyIn(Long tenantId, Long empresaId, List<String> accessKeys);
 
     long countByTenantIdAndEmpresaId(Long tenantId, Long empresaId);
 

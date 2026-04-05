@@ -45,9 +45,10 @@ public class QueueRetryRecoverer implements MessageRecoverer {
         }
         Object importacaoId = map != null ? map.get("importacaoId") : null;
         Object importItemId = map != null ? map.get("importItemId") : null;
+        Object spedFileId = map != null ? map.get("spedFileId") : null;
 
-        log.error("queue.dlq routed queue={} correlationId={} retryCount={} importacaoId={} importItemId={} cause={}",
-                queueName, correlationId, retryCount, importacaoId, importItemId,
+        log.error("queue.dlq routed queue={} correlationId={} retryCount={} importacaoId={} importItemId={} spedFileId={} cause={}",
+                queueName, correlationId, retryCount, importacaoId, importItemId, spedFileId,
                 cause != null ? cause.getClass().getSimpleName() : "unknown");
 
         throw new AmqpRejectAndDontRequeueException("DLQ routed", cause);

@@ -208,6 +208,19 @@ class ApiSecurityInterceptorTest {
     }
 
     @Test
+    void spedUpload_bearerJwtValido_defineContexto() {
+        ApiSecurityInterceptor interceptor = interceptor();
+        MockHttpServletRequest req = new MockHttpServletRequest("POST", "/sped/files/upload");
+        req.addHeader("Authorization", "Bearer jwt-token");
+        MockHttpServletResponse resp = new MockHttpServletResponse();
+        UserAuthContext context = new UserAuthContext(9L, "operador@empresa.com", List.of("OPERADOR"));
+        when(identityAuthService.authenticateUserBearer("jwt-token")).thenReturn(context);
+
+        assertTrue(interceptor.preHandle(req, resp, new Object()));
+        assertSame(context, req.getAttribute(UserAuthRequestContext.REQUEST_ATTRIBUTE));
+    }
+
+    @Test
     void adminPath_xAdminToken_semBearer_lancaUnauthorized() {
         ApiSecurityInterceptor interceptor = interceptor();
         MockHttpServletRequest req = new MockHttpServletRequest("GET", "/admin/tenants");

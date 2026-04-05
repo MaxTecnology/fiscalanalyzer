@@ -56,7 +56,8 @@ public class ApiSecurityInterceptor implements HandlerInterceptor {
             "/imports/*/items",
             "/imports/*/failures-summary",
             "/imports/*/reprocess",
-            "/documents/**"
+            "/documents/**",
+            "/sped/**"
     );
 
     public ApiSecurityInterceptor(AgentApiKeyService agentApiKeyService,

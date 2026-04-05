@@ -17,6 +17,9 @@ spring:
 app:
   importacao:
     max-zip-size: 200MB
+  sped:
+    max-upload-size: 300MB
+    max-txt-size: 50MB
   web:
     cors:
       allowed-origins: ${APP_WEB_CORS_ALLOWED_ORIGINS:http://localhost:5173,http://127.0.0.1:5173}
@@ -67,6 +70,8 @@ app:
     extract-dlq: import.extract.dlq
     parse-xml: import.parse
     parse-dlq: import.parse.dlq
+    parse-sped: import.sped.parse
+    parse-sped-dlq: import.sped.parse.dlq
     listener:
       extract:
         concurrency: 1
@@ -76,6 +81,10 @@ app:
         concurrency: 2
         max-concurrency: 8
         prefetch: 50
+      sped:
+        concurrency: 1
+        max-concurrency: 2
+        prefetch: 10
     retry:
       max-attempts: 5
       initial-interval: 1000

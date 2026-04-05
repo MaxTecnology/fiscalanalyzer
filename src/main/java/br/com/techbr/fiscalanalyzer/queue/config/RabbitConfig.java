@@ -53,12 +53,27 @@ public class RabbitConfig {
     }
 
     @Bean
+    public Queue parseSpedQueue(@Value("${app.queue.parse-sped}") String queueName,
+                                @Value("${app.queue.dlx}") String dlx,
+                                @Value("${app.queue.parse-sped-dlq}") String dlqRoutingKey) {
+        return QueueBuilder.durable(queueName)
+                .deadLetterExchange(dlx)
+                .deadLetterRoutingKey(dlqRoutingKey)
+                .build();
+    }
+
+    @Bean
     public Queue extractZipDlq(@Value("${app.queue.extract-dlq}") String queueName) {
         return new Queue(queueName, true);
     }
 
     @Bean
     public Queue parseXmlDlq(@Value("${app.queue.parse-dlq}") String queueName) {
+        return new Queue(queueName, true);
+    }
+
+    @Bean
+    public Queue parseSpedDlq(@Value("${app.queue.parse-sped-dlq}") String queueName) {
         return new Queue(queueName, true);
     }
 
@@ -77,6 +92,13 @@ public class RabbitConfig {
     }
 
     @Bean
+    public Binding parseSpedBinding(Queue parseSpedQueue,
+                                    DirectExchange importExchange,
+                                    @Value("${app.queue.parse-sped}") String routingKey) {
+        return BindingBuilder.bind(parseSpedQueue).to(importExchange).with(routingKey);
+    }
+
+    @Bean
     public Binding extractZipDlqBinding(Queue extractZipDlq,
                                         DirectExchange deadLetterExchange,
                                         @Value("${app.queue.extract-dlq}") String routingKey) {
@@ -88,6 +110,13 @@ public class RabbitConfig {
                                       DirectExchange deadLetterExchange,
                                       @Value("${app.queue.parse-dlq}") String routingKey) {
         return BindingBuilder.bind(parseXmlDlq).to(deadLetterExchange).with(routingKey);
+    }
+
+    @Bean
+    public Binding parseSpedDlqBinding(Queue parseSpedDlq,
+                                       DirectExchange deadLetterExchange,
+                                       @Value("${app.queue.parse-sped-dlq}") String routingKey) {
+        return BindingBuilder.bind(parseSpedDlq).to(deadLetterExchange).with(routingKey);
     }
 
     @Bean
@@ -133,6 +162,21 @@ public class RabbitConfig {
     }
 
     @Bean
+    public MethodInterceptor parseSpedRetryInterceptor(
+            QueueRetryRecoverer parseSpedRecoverer,
+            @Value("${app.queue.retry.max-attempts:5}") int maxAttempts,
+            @Value("${app.queue.retry.initial-interval:1000}") long initialInterval,
+            @Value("${app.queue.retry.multiplier:2.0}") double multiplier,
+            @Value("${app.queue.retry.max-interval:30000}") long maxInterval
+    ) {
+        return RetryInterceptorBuilder.stateless()
+                .maxRetries(Math.max(0, maxAttempts - 1))
+                .backOffOptions(initialInterval, multiplier, maxInterval)
+                .recoverer(parseSpedRecoverer)
+                .build();
+    }
+
+    @Bean
     public SimpleRabbitListenerContainerFactory extractRabbitListenerContainerFactory(
             ConnectionFactory connectionFactory,
             MessageConverter messageConverter,
@@ -171,6 +215,25 @@ public class RabbitConfig {
     }
 
     @Bean
+    public SimpleRabbitListenerContainerFactory parseSpedRabbitListenerContainerFactory(
+            ConnectionFactory connectionFactory,
+            MessageConverter messageConverter,
+            MethodInterceptor parseSpedRetryInterceptor,
+            @Value("${app.queue.listener.sped.concurrency:1}") int concurrency,
+            @Value("${app.queue.listener.sped.max-concurrency:2}") int maxConcurrency,
+            @Value("${app.queue.listener.sped.prefetch:10}") int prefetch
+    ) {
+        SimpleRabbitListenerContainerFactory factory = new SimpleRabbitListenerContainerFactory();
+        factory.setConnectionFactory(connectionFactory);
+        factory.setMessageConverter(messageConverter);
+        factory.setAdviceChain(parseSpedRetryInterceptor);
+        factory.setConcurrentConsumers(Math.max(1, concurrency));
+        factory.setMaxConcurrentConsumers(Math.max(Math.max(1, concurrency), maxConcurrency));
+        factory.setPrefetchCount(Math.max(1, prefetch));
+        return factory;
+    }
+
+    @Bean
     public SimpleRabbitListenerContainerFactory dlqRabbitListenerContainerFactory(
             ConnectionFactory connectionFactory,
             MessageConverter messageConverter
@@ -199,6 +262,15 @@ public class RabbitConfig {
             MeterRegistry meterRegistry,
             ObjectMapper objectMapper,
             @Value("${app.queue.parse-xml}") String queueName
+    ) {
+        return new QueueRetryRecoverer(meterRegistry, objectMapper, queueName);
+    }
+
+    @Bean
+    public QueueRetryRecoverer parseSpedRecoverer(
+            MeterRegistry meterRegistry,
+            ObjectMapper objectMapper,
+            @Value("${app.queue.parse-sped}") String queueName
     ) {
         return new QueueRetryRecoverer(meterRegistry, objectMapper, queueName);
     }

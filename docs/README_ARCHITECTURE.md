@@ -59,6 +59,7 @@ Executam:
 - extração do ZIP
 - identificação de XMLs
 - parsing streaming
+- parsing streaming de SPED (`.txt` direto e `.txt` dentro de `.zip`)
 - persistência no banco
 
 Características:
@@ -242,6 +243,38 @@ Quando todos os itens de uma importação são processados:
 
 ---
 
+### 3.7 Fluxo SPED (fundação + parse inicial)
+1. Usuário envia arquivo SPED via `POST /sped/files/upload`:
+   - arquivo `.txt` único; ou
+   - `.zip` com múltiplos `.txt`.
+2. Backend calcula hash SHA-256 e aplica idempotência por `(tenant_id, empresa_id, hash_sha256)`.
+3. Registro é criado em `sped_fiscal_file` com status `PENDENTE_PARSE`.
+4. Evento de parse é publicado **AFTER_COMMIT** para `import.sped.parse`.
+5. Worker `ParseSpedConsumer` processa em streaming:
+   - `TXT`: leitura direta do objeto;
+   - `ZIP_ENTRY`: leitura do ZIP em streaming até a entry alvo.
+6. Parser SPED em streaming valida e persiste:
+   - layout (`0000.COD_VER`);
+   - período (`0000.DT_INI`, `0000.DT_FIN`);
+   - contagem de linhas declarada (`9999.QTD_LIN`) e processada;
+   - participantes `0150` em `sped_fiscal_participant`;
+   - documentos `C100` em `sped_fiscal_c100` (por linha de origem);
+   - itens `C170` e analítico `C190`;
+   - apuração `E110` e ajustes `E111`.
+7. Em sucesso: status `PROCESSADO`.
+8. Erro de conteúdo/layout: status `FALHA` (ACK sem retry infinito).
+9. Erro de infra (storage/IO): rethrow para retry/DLQ.
+10. Read model SPED disponível para front:
+   - `GET /sped/files`
+   - `GET /sped/files/{id}`
+   - `GET /sped/files/{id}/reconciliation`
+   - `GET /sped/reconciliation/summary`
+   - `GET /sped/reconciliation/divergences`
+   - `GET /sped/summary`
+   - `POST /sped/files/{id}/reprocess`
+
+---
+
 ## 4. Estrutura de pacotes (alto nível)
 
 A estrutura do código segue o domínio do problema:
@@ -252,6 +285,7 @@ br.com.techbr.fiscalanalyzer
 ├── common # Enums, value objects, exceções comuns
 ├── identity # Cadastro interno de tenant/empresa/usuário local
 ├── importacao # Upload e controle de importações
+├── sped # Ingestão de arquivos SPED e orquestração de parse
 ├── xml # Parser e modelos canônicos de XML
 ├── documento # Persistência de documentos fiscais
 ├── item # Persistência de itens fiscais
@@ -315,6 +349,9 @@ A arquitetura foi desenhada para permitir:
 
 Nenhuma decisão atual bloqueia essas evoluções.
 
+Plano ativo para SPED:
+- `SPED_FISCAL_IMPLEMENTATION_PLAN.md`
+
 ---
 
 ## 7. O que NÃO fazer
@@ -341,9 +378,12 @@ Fases:
 - Fase 5 — Hardening para alto volume (1M+ XML): ingestão por agente/manifests, tuning de concorrência, custo/throughput e operação — **CONCLUÍDA (BACKEND CORE)**
 - Fase 6 — Fundação de identidade (`tenant`, `empresa`, `usuário` local, FKs compostas, APIs admin) — **CONCLUÍDA**
 - Fase 7 — Autenticação de usuário (JWT/RBAC) + consolidação operacional para front/agent — **EM ANDAMENTO**
+- Fase 8.1 — Fundação SPED (upload TXT/ZIP + persistência + fila `import.sped.parse`) — **CONCLUÍDA**
+- Fase 8.2 — Parser SPED streaming e persistência dos blocos fiscais — **EM ANDAMENTO**
+- Fase 8.4 — Read model/API de análise SPED (lista/detalhe/resumo/reprocesso/reconciliation) — **EM ANDAMENTO**
 
 Status atual:
-- Estamos em **Fase 7**.
+- Estamos em **Fase 7 + Fase 8 (SPED) em andamento**.
 - Não avançar para novas funcionalidades fiscais antes de concluir o pacote de operação/admin (agent + front + auth de usuário).
 - Baseline local já medido no pipeline atual (arquivo com 50 XML): ver `INGESTION_HIGH_VOLUME.md`.
 - Tuning inicial de concorrência/prefetch do Rabbit já aplicado; manter ajustes guiados por medição.
@@ -351,6 +391,25 @@ Status atual:
 - Agente de ingestão (C#) documentado em `AGENT_ARCHITECTURE.md` — integração backend pronta; implementação evolui no projeto do agente.
 - Endpoint `POST /imports/manifest` implementado (cria `importacao` MANIFEST + `import_item` em batch e publica parse AFTER_COMMIT).
 - Worker de parse suporta dois modos: ZIP (`zipEntryName`) e XML direto no storage (`storage_object_key`).
+- Endpoint `POST /sped/files/upload` implementado para:
+  - arquivo único `.txt` (SPED);
+  - `.zip` com múltiplos `.txt` (cada entrada gera um registro idempotente e evento de parse).
+- Worker de parse SPED implementado com retry/DLQ:
+  - consome `import.sped.parse`;
+  - lê storage em streaming (`TXT` e `ZIP_ENTRY`);
+  - valida/metadados (`0000` e `9999`);
+  - persiste blocos SPED já suportados: `0150`, `C100`, `C170`, `C190`, `E110`, `E111`;
+  - atualiza `sped_fiscal_file.status` para `PROCESSADO`/`FALHA`.
+- Read model SPED com reconciliação por arquivo já exposto:
+  - `GET /sped/files/{id}/reconciliation`
+  - status atuais: `OK`, `FALTANTE_XML`, `VALOR_DIVERGENTE`, `ITEM_DIVERGENTE`, `IMPOSTO_DIVERGENTE`, `SEM_CHAVE`
+  - comparações atuais: total do documento, ICMS/PIS/COFINS e contagem de itens (SPED x XML).
+- Read model SPED com resumo gerencial por período:
+  - `GET /sped/reconciliation/summary`
+  - agrega status de conciliação, top CFOP/CST (SPED), top CFOP/NCM (XML) e consolidação de apuração `E110/E111`.
+- Drill-down de divergências para tela operacional:
+  - `GET /sped/reconciliation/divergences`
+  - filtros: período, status e `accessKey` (paginação).
 - Segurança backend↔agent (Fases 1-3) implementada: `POST /agent/session`, `POST /agent/upload-url`, `POST /imports/manifest` protegido com Bearer ApiKey + cross-check tenant/empresa.
 - Gestão de ApiKey ativa via rotas admin (`/admin/empresas/{empresaId}/agent-keys`, incluindo `rotate`), protegidas por JWT `ADMIN`.
 - APIs administrativas de identidade ativas: `tenant`, `empresa`, `usuário` local e vínculos de acesso.
@@ -359,6 +418,7 @@ Status atual:
 - Rotas `/admin/**` exigem JWT de usuário com role `ADMIN` (sem fallback legado).
 - Fase 7.2 iniciada: RBAC mínimo ativo por role + escopo de empresa nas rotas de operação:
   - escrita: `POST /imports/upload` (roles `ADMIN`/`OPERADOR`)
+  - escrita SPED: `POST /sped/files/upload` (roles `ADMIN`/`OPERADOR`)
   - escrita operacional: `POST /imports/{id}/reprocess` (roles `ADMIN`/`OPERADOR`)
   - leitura: `GET /imports/{id}`, `GET /imports/{id}/items`, `GET /imports/{id}/failures-summary`, `GET /documents`, `GET /documents/{accessKey}`, `GET /documents/{accessKey}/xml`, `GET /documents/{accessKey}/events`, `GET /documents/summary`, `GET /documents/emitters`, `GET /documents/receivers`, `GET /documents/stats/*` (roles `ADMIN`/`OPERADOR`/`LEITOR`)
   - usuários não-admin precisam de vínculo explícito em `app_user_empresa` para `tenantId/empresaId`.

@@ -39,6 +39,9 @@ management:
 app:
   importacao:
     max-zip-size: 200MB
+  sped:
+    max-upload-size: 300MB
+    max-txt-size: 50MB
   queue:
     exchange: import.exchange
     dlx: import.dlx
@@ -46,6 +49,13 @@ app:
     extract-dlq: import.extract.dlq
     parse-xml: import.parse
     parse-dlq: import.parse.dlq
+    parse-sped: import.sped.parse
+    parse-sped-dlq: import.sped.parse.dlq
+    listener:
+      sped:
+        concurrency: 1
+        max-concurrency: 2
+        prefetch: 10
     retry:
       max-attempts: 5
       initial-interval: 1000
